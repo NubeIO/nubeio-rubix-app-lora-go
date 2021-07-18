@@ -3,11 +3,14 @@ package decoder
 import "strconv"
 
 type TMicroEdge struct {
-	Sensor        string
-	Id            string
-	Rssi, Voltage int
-	Pulse         int
-	AI1, AI2, AI3 float64
+	Sensor        		string `json:"sensor"`
+	Id            		string `json:"id"`
+	Rssi 				int `json:"rssi"`
+	Voltage 			int  `json:"voltage"`
+	Pulse         		int `json:"pulse"`
+	AI1 				float64 `json:"ai_1"`
+	AI2 				float64 `json:"ai_2"`
+	AI3 				float64 `json:"ai_3"`
 }
 
 func MicroEdge(data string, sensor string) TMicroEdge {

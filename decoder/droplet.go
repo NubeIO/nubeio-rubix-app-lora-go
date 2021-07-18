@@ -5,35 +5,15 @@ import (
 )
 
 
-func S2b(b int) bool {
-	if b == 1 {
-		return true
-	}
-	return false
-}
-
-
-
-func I2b(b int) bool {
-	if b == 1 {
-		return true
-	}
-	return false
-}
-
-func B2i(b bool) int8 {
-	if b {
-		return 1
-	}
-	return 0
-}
-
 type TDroplet struct {
-	Sensor                  string
-	Id                      string
-	Rssi, Voltage           int
-	Temperature             float64
-	Humidity, Light, Motion int
+	Sensor                  string `json:"sensor"`
+	Id                      string `json:"id"`
+	Rssi 					int `json:"rssi"`
+	Voltage           		int `json:"voltage"`
+	Temperature             float64 `json:"temperature"`
+	Humidity 				int `json:"humidity"`
+	Light 					int `json:"light"`
+	Motion 					int `json:"motion"`
 }
 
 func Droplet(data string, sensor string) TDroplet {

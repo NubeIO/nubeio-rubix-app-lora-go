@@ -8,13 +8,13 @@ import (
 	"log"
 )
 
-func InitDB() (*gorm.DB, error) {
+func InitDB(DisableLogging bool) (*gorm.DB, error) {
 	var args sql_config.Params
 	args.UseConfigFile = false
 	var config sql_config.Database
 	config.DbName = "test.db"
 	config.DbPath = "./"
-	config.Logging = true
+	config.Logging = !DisableLogging
 
 	err := sql_config.SetSqliteConfig(config, args); if err != nil {
 		log.Println(err)
@@ -26,7 +26,7 @@ func InitDB() (*gorm.DB, error) {
 		&network,  &device,
 	}
 	err = database.SetupDB(models); if err != nil {
-		log.Println(2222, err)
+		log.Println( err)
 		return nil, err
 	}
 	var db = database.GetDB()

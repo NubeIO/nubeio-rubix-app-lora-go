@@ -2,16 +2,20 @@ package main
 
 import (
 	"github.com/NubeIO/nubeio-rubix-app-lora-go/controller/networks"
+	"github.com/NubeIO/nubeio-rubix-app-lora-go/serial"
 	"github.com/NubeIO/nubeio-rubix-app-lora-go/setup"
+	"github.com/NubeIO/nubeio-rubix-lib-helpers-go/pkg/logs"
+	"github.com/NubeIO/nubeio-rubix-lib-mqtt-go/pkg/mqtt_lib"
 	"github.com/NubeIO/nubeio-rubix-lib-rest-go/rest"
 	"log"
 )
 
+var DisableLogging bool = false
 
-//func init() {
-//	database.Setup()
-//	helpers.DisableLogging(false)
-//}
+func init() {
+	logs.DisableLogging(DisableLogging)
+}
+
 // @title GO Nube API
 // @version 1.0
 // @description nube api docs
@@ -28,10 +32,19 @@ func main() {
 		log.Println(err)
 		return
 	}
-	db, err := setup.InitDB();if err != nil {
+	db, err := setup.InitDB(DisableLogging);if err != nil {
 		log.Println(err)
 		return
 	}
+
+	err = setup.InitSerial();if err != nil {
+		log.Println(err)
+		return
+	}
+
+	mqttConnection := mqtt_lib.NewConnection()
+	go serial.NewSerialConnection(mqttConnection)
+
 
 	app := rest.New(3)
 	app.Controller(networks.New(db))
