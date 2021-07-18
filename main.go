@@ -1,13 +1,12 @@
 package main
 
 import (
-	"github.com/NubeIO/nubeio-rubix-lib-rest-go/config"
-	_ "github.com/NubeIO/nubeio-rubix-lib-rest-go/docs"
-	"github.com/NubeIO/nubeio-rubix-lib-rest-go/helpers"
-	"github.com/NubeIO/nubeio-rubix-lib-rest-go/pkg/database"
-	"github.com/NubeIO/nubeio-rubix-lib-rest-go/pkg/router"
+	"github.com/NubeIO/nubeio-rubix-app-lora-go/controller/networks"
+	"github.com/NubeIO/nubeio-rubix-app-lora-go/setup"
+	"github.com/NubeIO/nubeio-rubix-lib-rest-go/rest"
 	"log"
 )
+
 
 //func init() {
 //	database.Setup()
@@ -24,16 +23,22 @@ import (
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 // @host localhost:8081
 func main() {
-	commonConfig := config.CommonConfig()
-	database.Setup()
-	helpers.DisableLogging(false)
-	db := database.GetDB()
-	r := router.Setup(db)
-	port := commonConfig.Server.Port
-	err := r.Run("localhost:" + port)
-	log.Printf("Server is starting at 127.0.0.1:%s",port)
-	if err != nil {
-		log.Printf("Server error %s", port)
+
+	err := setup.InitMQTT();if err != nil {
+		log.Println(err)
 		return
 	}
+	db, err := setup.InitDB();if err != nil {
+		log.Println(err)
+		return
+	}
+
+	app := rest.New(3)
+	app.Controller(networks.New(db))
+	err = app.Run(":1920");if err != nil {
+		log.Println(err)
+		return
+	}
+
+
 }
