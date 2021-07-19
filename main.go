@@ -1,7 +1,12 @@
 package main
 
 import (
+	"github.com/NubeIO/nubeio-rubix-app-lora-go/controller/devices"
+	"github.com/NubeIO/nubeio-rubix-app-lora-go/controller/devices/device"
 	"github.com/NubeIO/nubeio-rubix-app-lora-go/controller/networks"
+	"github.com/NubeIO/nubeio-rubix-app-lora-go/controller/networks/network"
+	"github.com/NubeIO/nubeio-rubix-app-lora-go/controller/points"
+	"github.com/NubeIO/nubeio-rubix-app-lora-go/controller/points/point"
 	"github.com/NubeIO/nubeio-rubix-app-lora-go/serial"
 	"github.com/NubeIO/nubeio-rubix-app-lora-go/setup"
 	"github.com/NubeIO/nubeio-rubix-lib-helpers-go/pkg/logs"
@@ -10,7 +15,7 @@ import (
 	"log"
 )
 
-var DisableLogging bool = false
+var DisableLogging bool = true
 
 func init() {
 	logs.DisableLogging(DisableLogging)
@@ -36,18 +41,20 @@ func main() {
 		log.Println(err)
 		return
 	}
-
 	err = setup.InitSerial();if err != nil {
 		log.Println(err)
 		return
 	}
-
 	mqttConnection := mqtt_lib.NewConnection()
 	go serial.NewSerialConnection(mqttConnection)
 
-
 	app := rest.New(3)
 	app.Controller(networks.New(db))
+	app.Controller(network.New(db))
+	app.Controller(devices.New(db))
+	app.Controller(device.New(db))
+	app.Controller(points.New(db))
+	app.Controller(point.New(db))
 	err = app.Run(":1920");if err != nil {
 		log.Println(err)
 		return

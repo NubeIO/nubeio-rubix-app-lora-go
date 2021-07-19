@@ -1,7 +1,9 @@
 package setup
 
 import (
-	model_networks "github.com/NubeIO/nubeio-rubix-app-lora-go/model/networks"
+	modeldevices "github.com/NubeIO/nubeio-rubix-app-lora-go/model/devices"
+	modelnetworks "github.com/NubeIO/nubeio-rubix-app-lora-go/model/networks"
+	modelpoints "github.com/NubeIO/nubeio-rubix-app-lora-go/model/points"
 	"github.com/NubeIO/nubeio-rubix-lib-sqlite-go/pkg/database"
 	"github.com/NubeIO/nubeio-rubix-lib-sqlite-go/sql_config"
 	"gorm.io/gorm"
@@ -20,11 +22,14 @@ func InitDB(DisableLogging bool) (*gorm.DB, error) {
 		log.Println(err)
 		return nil, err
 	}
-	var network []model_networks.Network
-	var device []model_networks.Device
+	var network []modelnetworks.Network
+	var device []modeldevices.Device
+	var point []modelpoints.Point
+	var pointStore []modelpoints.PointStore
 	var models = []interface{}{
-		&network,  &device,
+		&network,  &device,  &point, &pointStore,
 	}
+
 	err = database.SetupDB(models); if err != nil {
 		log.Println( err)
 		return nil, err

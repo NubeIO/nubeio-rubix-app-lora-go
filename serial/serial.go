@@ -2,7 +2,7 @@ package serial
 
 import (
 	"bufio"
-	"encoding/json"
+	"github.com/NubeIO/nubeio-rubix-app-lora-go/controller/points"
 	"github.com/NubeIO/nubeio-rubix-app-lora-go/decoder"
 
 	"github.com/NubeIO/nubeio-rubix-lib-mqtt-go/pkg/mqtt_lib"
@@ -70,7 +70,7 @@ func NewSerialConnection(mqttConn *mqtt_lib.MqttConnection) {
 
 	scanner := bufio.NewScanner(port)
 	count := 0
-	topic := "test"
+	//topic := "test"
 
 	for scanner.Scan() {
 		var data = scanner.Text()
@@ -78,22 +78,36 @@ func NewSerialConnection(mqttConn *mqtt_lib.MqttConnection) {
 			count = count + 1
 			log.Println("loop count", count)
 			s := decoder.CheckSensorType(data)
-			var message interface{}
+
 			log.Println("Raw serial messages", data)
 			me := string(decoder.SensorNames.ME)
 			thml := string(decoder.SensorNames.THML)
+			//var message interface{}
 			if s == me {
 				d := decoder.MicroEdge(data, me)
 				log.Println(d)
-				message = decoder.TMicroEdge{Sensor: me, Id: d.Id, Rssi: d.Rssi, Voltage: d.Voltage}
+				points.PublishMicro(me, d, mqttConn)
+				//message = decoder.TMicroEdge{Sensor: me, Id: d.Id, Rssi: d.Rssi, Voltage: d.Voltage}
 			} else if s == thml {
 				d := decoder.Droplet(data, thml)
-				log.Println(d)
-				message = decoder.TDroplet{Sensor: thml, Id: d.Id, Rssi: d.Rssi, Voltage: d.Voltage}
+				//message = decoder.TDroplet{Sensor: thml, Id: d.Id, Rssi: d.Rssi, Voltage: d.Voltage}
+				points.PublishDroplet(thml, d, mqttConn)
 			}
-			jsonValue, _ := json.Marshal(message)
-			log.Println("MQTT messages, topic:", topic, " ", "data:", data)
-			mqttConn.Publish(string(jsonValue), topic)
+
+			//var message interface{}
+			//if s == me {
+			//	d := decoder.MicroEdge(data, me)
+			//	log.Println(d)
+			//	message = decoder.TMicroEdge{Sensor: me, Id: d.Id, Rssi: d.Rssi, Voltage: d.Voltage}
+			//} else if s == thml {
+			//	d := decoder.Droplet(data, thml)
+			//	log.Println(d)
+			//	message = decoder.TDroplet{Sensor: thml, Id: d.Id, Rssi: d.Rssi, Voltage: d.Voltage}
+			//	points.PublishPoints(d, mqttConn)
+			//}
+			//jsonValue, _ := json.Marshal(message)
+			//log.Println("MQTT messages, topic:", topic, " ", "data:", message)
+			//mqttConn.Publish(string(jsonValue), topic)
 
 		} else {
 			log.Println(len(data), "size")

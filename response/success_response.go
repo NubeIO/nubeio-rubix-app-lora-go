@@ -21,3 +21,8 @@ func Data(model interface{}) rest.IResponse {
 func OK(resp interface{}) rest.IResponse {
 	return rest.Success(http.StatusOK, resp)
 }
+
+func OKWithMessage(resp string) rest.IResponse {
+	return rest.Success(http.StatusOK, resp)
+}
+

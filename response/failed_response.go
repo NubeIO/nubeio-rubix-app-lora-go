@@ -9,6 +9,7 @@ func BadEntity(excepted ...string) rest.IResponse {
 	return rest.Failed(http.StatusUnprocessableEntity, excepted)
 }
 
+
 func NotFound(err string) rest.IResponse {
 	return rest.Failed(http.StatusNotFound, err)
 }
