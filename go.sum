@@ -1,9 +1,9 @@
-github.com/NubeIO/nubeio-rubix-lib-helpers-go v0.0.5 h1:V1T7756d6rjDxVLtxBuftw//530ybQGuH4PWb18xToM=
-github.com/NubeIO/nubeio-rubix-lib-helpers-go v0.0.5/go.mod h1:To2cBanmqPSFjuPNxN8riz5bz4eIQ/eaFAMyMDnW6vI=
+github.com/NubeIO/nubeio-rubix-lib-helpers-go v0.0.7 h1:iIoAef2C0+U+Zf1ku0fYxsL8cjbnGJ9NA4tkFCECISE=
+github.com/NubeIO/nubeio-rubix-lib-helpers-go v0.0.7/go.mod h1:To2cBanmqPSFjuPNxN8riz5bz4eIQ/eaFAMyMDnW6vI=
 github.com/NubeIO/nubeio-rubix-lib-mqtt-go v0.0.8 h1:K1Feb1uI2o4+4yule1njjSarOq9LpzOUQ5PfZnh1dI4=
 github.com/NubeIO/nubeio-rubix-lib-mqtt-go v0.0.8/go.mod h1:Mtfvz+a6kkUi1Kv/0sz+hJ0bK8kthF6nsnaWmNa0sdc=
-github.com/NubeIO/nubeio-rubix-lib-rest-go v0.0.4 h1:Cjcq3sgg7SbAVHULLf60E89hv/8NJLZKfUnq/GhDoFk=
-github.com/NubeIO/nubeio-rubix-lib-rest-go v0.0.4/go.mod h1:sG71V3HDc2hsxxFx8q9zDw/r4+zWVzxZLMKda/9mZM4=
+github.com/NubeIO/nubeio-rubix-lib-rest-go v0.0.6 h1:UEqLeNP5nsaFDTujLyHbHtIVp9s2H/TemFcntVD9RS8=
+github.com/NubeIO/nubeio-rubix-lib-rest-go v0.0.6/go.mod h1:YsIW9994dYbtlmwwfpbRGhkePSGMOdgEjl13P4xeDu8=
 github.com/NubeIO/nubeio-rubix-lib-sqlite-go v0.0.4 h1:hlLGemwnoCRsthaeZwuWP8Ih8KNPra+l5v8o19utsZA=
 github.com/NubeIO/nubeio-rubix-lib-sqlite-go v0.0.4/go.mod h1:MvrezgNAPHt5XMO79gF9LL9LuZOvjPRJyJl0K8HVR9I=
 github.com/creack/goselect v0.1.2 h1:2DNy14+JPjRBgPzAd1thbQp4BSIihxcBf0IXhQXDRa0=

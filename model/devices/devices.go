@@ -6,8 +6,10 @@ import (
 )
 
 type CommonDevice struct {
-	Name        	string `json:"name" validate:"min=1,max=255"  gorm:"type:varchar(255);unique;not null"`
-	Description 	string `json:"description"`
+	//Name        	string `json:"name" validate:"min=1,max=255"  gorm:"type:varchar(255);unique;not null"`
+	Manufacture 	string `json:"manufacture"`
+	Model 			string `json:"model"`
+
 }
 
 type Device struct {

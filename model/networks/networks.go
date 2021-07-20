@@ -10,6 +10,8 @@ import (
 type Network struct {
 	Uuid			string 		`json:"uuid"  gorm:"type:varchar(255);unique;primaryKey"`
 	modelcommon.Common
+	Manufacture 	string `json:"manufacture"`
+	Model 			string `json:"model"`
 	Device 			[]modeldevices.Device `json:"devices" gorm:"constraint:OnDelete:CASCADE;"`
 }
 

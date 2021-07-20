@@ -15,7 +15,7 @@ import (
 	"log"
 )
 
-var DisableLogging bool = true
+var DisableLogging bool = false
 
 func init() {
 	logs.DisableLogging(DisableLogging)
@@ -46,7 +46,7 @@ func main() {
 		return
 	}
 	mqttConnection := mqtt_lib.NewConnection()
-	go serial.NewSerialConnection(mqttConnection)
+	go serial.NewSerialConnection(mqttConnection, true)
 
 	app := rest.New(3)
 	app.Controller(networks.New(db))

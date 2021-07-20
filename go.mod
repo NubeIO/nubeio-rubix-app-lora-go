@@ -5,9 +5,9 @@ go 1.16
 //replace github.com/NubeIO/nubeio-rubix-lib-serial-go => /home/aidan/code/go/nube-libs/nubeio-rubix-lib-sqlite-go
 
 require (
-	github.com/NubeIO/nubeio-rubix-lib-helpers-go v0.0.5
+	github.com/NubeIO/nubeio-rubix-lib-helpers-go v0.0.7
 	github.com/NubeIO/nubeio-rubix-lib-mqtt-go v0.0.8
-	github.com/NubeIO/nubeio-rubix-lib-rest-go v0.0.4
+	github.com/NubeIO/nubeio-rubix-lib-rest-go v0.0.6
 	github.com/NubeIO/nubeio-rubix-lib-sqlite-go v0.0.4
 	github.com/gin-gonic/gin v1.7.2
 	github.com/go-playground/validator/v10 v10.7.0 // indirect

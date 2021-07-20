@@ -29,6 +29,8 @@ type Params struct 	{
 	GenerateFile  bool
 }
 
+
+
 //SetSerialConfig
 // if args Params.GenerateFile is true this will create a json serial_config file and will disregard
 // if args Params.UseConfigFile is true is will use a local serial_config file

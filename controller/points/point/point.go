@@ -15,16 +15,19 @@ var db *gorm.DB
 
 var deviceModel []modeldevices.Device
 var pointModel []modelpoints.Point
-var childTable = "PointStores"
 //var pointStore []modelpoints.PointStore
+var childTable = "PointStores"
+
 
 func New(_db *gorm.DB) rest.IController {
 	c := rest.Controller("api/point")
 	c.POST("/", create)
 	c.SUB("/uuid")
 	c.GET("/", get)
-	c.PUT("/", update)
+	c.PATCH("/", update)
 	c.DELETE("/", _delete)
+	c.SUB("/id")
+	c.GET("/", get)
 	db = _db
 	return c
 }
@@ -43,26 +46,70 @@ func create(ctx *gin.Context) rest.IResponse {
 	if err = db.Create(&body).Error; err != nil {
 		return response.BadEntity(err.Error())
 	}
+	_pointModel := new(modelpoints.PointStore)
+	_priorityArrayModel := new(modelpoints.PriorityArrayModel)
+	_pointModel.PointUuid = body.Uuid
+	_priorityArrayModel.PointUuid = body.Uuid
+
+	if err = db.Create(&_pointModel).Error; err != nil {
+		return response.BadEntity(err.Error())
+	}
+	if err = db.Create(&_priorityArrayModel).Error; err != nil {
+		return response.BadEntity(err.Error())
+	}
 	return response.Created(body.Uuid)
 }
 
+
+//func get(ctx *gin.Context) rest.IResponse {
+//	_uuid := resolveID(ctx)
+//	withChildren := withChild(ctx)
+//	query := "uuid = ? "
+//	if withChildren {
+//		_query := db.Where(query, _uuid).Preload(childTable).First(&deviceModel);if _query.Error != nil {
+//			return response.BadEntity(_query.Error.Error())
+//		}
+//		return response.Data(pointModel)
+//	} else {
+//		_query := db.Where(query, _uuid).First(&pointModel);if _query.Error != nil {
+//			return response.BadEntity(_query.Error.Error())
+//		}
+//		return response.Data(pointModel)
+//	}
+//}
 
 func get(ctx *gin.Context) rest.IResponse {
 	_uuid := resolveID(ctx)
 	withChildren := withChild(ctx)
 	query := "uuid = ? "
 	if withChildren {
-		query := db.Where(query, _uuid).Preload(childTable).First(&deviceModel);if query.Error != nil {
-			return response.BadEntity(query.Error.Error())
+		_query := db.Where(query, _uuid).Preload(childTable).First(&pointModel);if _query.Error != nil {
+			return response.BadEntity(_query.Error.Error())
 		}
 		return response.Data(pointModel)
 	} else {
-		query := db.Where("uuid = ? ", _uuid).First(&pointModel);if query.Error != nil {
-			return response.BadEntity(query.Error.Error())
+		_query := db.Where(query, _uuid).First(&pointModel);if _query.Error != nil {
+			return response.BadEntity(_query.Error.Error())
 		}
 		return response.Data(pointModel)
 	}
 }
+
+//func get2(ctx *gin.Context, query string, field string, withChildren bool) (pointModel,  error) {
+//
+//	if withChildren {
+//		_query := db.Where(query, field).Preload(childTable).First(&deviceModel);if _query.Error != nil {
+//			return pointModel, _query.Error
+//		}
+//		return pointModel, nil
+//	} else {
+//		_query := db.Where(query, field).First(&pointModel);if _query.Error != nil {
+//			return response.BadEntity(_query.Error.Error())
+//		}
+//		return response.Data(pointModel)
+//	}
+//}
+
 
 func update (ctx *gin.Context) rest.IResponse {
 	body, _ := getBODY(ctx)

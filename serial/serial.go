@@ -2,6 +2,7 @@ package serial
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/NubeIO/nubeio-rubix-app-lora-go/controller/points"
 	"github.com/NubeIO/nubeio-rubix-app-lora-go/decoder"
 
@@ -28,17 +29,24 @@ type TMicroEdge struct {
 	Sensor        string
 }
 
+var _disableDebug = false
 
-func NewSerialConnection(mqttConn *mqtt_lib.MqttConnection) {
+func printString(msg string) {
+	if !_disableDebug {
+		log.Println(msg)
+	}
+}
 
+func NewSerialConnection(mqttConn *mqtt_lib.MqttConnection, disableDebug bool) {
+	if disableDebug {
+		_disableDebug = true
+	}
 	c := GetSerialConfig()
 	portName := c.Port
 	baudRate := c.BaudRate
 	parity := c.Parity
 	stopBits := c.StopBits
 	dataBits := c.DataBits
-
-
 	if Port.Connected {
 		log.Println("Existing serial port connection by this app is open So! close existing connection")
 		err := Port.Disconnect()
@@ -46,14 +54,12 @@ func NewSerialConnection(mqttConn *mqtt_lib.MqttConnection) {
 			return
 		}
 	}
-
 	m := &serial.Mode{
 		BaudRate: baudRate,
 		Parity:   parity,
 		DataBits: dataBits,
 		StopBits: stopBits,
 	}
-
 	ports, err := serial.GetPortsList()
 	Port.ActivePortList = ports
 	log.Println("SerialPort try and connect to", portName)
@@ -67,54 +73,34 @@ func NewSerialConnection(mqttConn *mqtt_lib.MqttConnection) {
 	}
 	Port.Connected = true
 	log.Println("Connected to serial port", portName)
-
 	scanner := bufio.NewScanner(port)
 	count := 0
-	//topic := "test"
 
 	for scanner.Scan() {
 		var data = scanner.Text()
 		if decoder.CheckPayloadLength(data) {
 			count = count + 1
-			log.Println("loop count", count)
+			_log := fmt.Sprintf("loop count %d", count)
+			printString(_log)
 			s := decoder.CheckSensorType(data)
-
-			log.Println("Raw serial messages", data)
+			_log = fmt.Sprintf("CheckSensorType %s", data)
+			printString(_log)
 			me := string(decoder.SensorNames.ME)
 			thml := string(decoder.SensorNames.THML)
-			//var message interface{}
 			if s == me {
 				d := decoder.MicroEdge(data, me)
-				log.Println(d)
+				_log = fmt.Sprintf("decoder.MicroEdge %s", data)
+				printString(_log)
 				points.PublishMicro(me, d, mqttConn)
-				//message = decoder.TMicroEdge{Sensor: me, Id: d.Id, Rssi: d.Rssi, Voltage: d.Voltage}
 			} else if s == thml {
 				d := decoder.Droplet(data, thml)
-				//message = decoder.TDroplet{Sensor: thml, Id: d.Id, Rssi: d.Rssi, Voltage: d.Voltage}
+				_log = fmt.Sprintf("decoder.Droplet %s", data)
+				printString(_log)
 				points.PublishDroplet(thml, d, mqttConn)
 			}
-
-			//var message interface{}
-			//if s == me {
-			//	d := decoder.MicroEdge(data, me)
-			//	log.Println(d)
-			//	message = decoder.TMicroEdge{Sensor: me, Id: d.Id, Rssi: d.Rssi, Voltage: d.Voltage}
-			//} else if s == thml {
-			//	d := decoder.Droplet(data, thml)
-			//	log.Println(d)
-			//	message = decoder.TDroplet{Sensor: thml, Id: d.Id, Rssi: d.Rssi, Voltage: d.Voltage}
-			//	points.PublishPoints(d, mqttConn)
-			//}
-			//jsonValue, _ := json.Marshal(message)
-			//log.Println("MQTT messages, topic:", topic, " ", "data:", message)
-			//mqttConn.Publish(string(jsonValue), topic)
-
 		} else {
-			log.Println(len(data), "size")
+			_log := fmt.Sprintf("lora serial messsage size %d", len(data))
+			printString(_log)
 		}
-
 	}
-
-
-
 }

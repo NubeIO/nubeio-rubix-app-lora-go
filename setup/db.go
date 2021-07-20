@@ -26,8 +26,9 @@ func InitDB(DisableLogging bool) (*gorm.DB, error) {
 	var device []modeldevices.Device
 	var point []modelpoints.Point
 	var pointStore []modelpoints.PointStore
+	var priorityArrayModel []modelpoints.PriorityArrayModel
 	var models = []interface{}{
-		&network,  &device,  &point, &pointStore,
+		&network,  &device,  &point, &pointStore, &priorityArrayModel,
 	}
 
 	err = database.SetupDB(models); if err != nil {

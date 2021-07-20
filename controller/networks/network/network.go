@@ -19,7 +19,7 @@ func New(_db *gorm.DB) rest.IController {
 	c.POST("/", create)
 	c.SUB("/uuid")
 		c.GET("/", get)
-		c.PUT("/", update)
+		c.PATCH("/", update)
 		c.DELETE("/", _delete)
 	db = _db
 	return c
