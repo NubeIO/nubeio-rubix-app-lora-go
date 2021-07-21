@@ -5,7 +5,7 @@ import (
 	modeldevices "github.com/NubeIO/nubeio-rubix-app-lora-go/model/devices"
 )
 
-
+//https://project-haystack.org/doc/appendix/protocol
 
 type Network struct {
 	Uuid			string 		`json:"uuid"  gorm:"type:varchar(255);unique;primaryKey"`

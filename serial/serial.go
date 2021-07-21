@@ -92,10 +92,13 @@ func NewSerialConnection(mqttConn *mqtt_lib.MqttConnection, disableDebug bool) {
 				_log = fmt.Sprintf("decoder.MicroEdge %s", data)
 				printString(_log)
 				points.PublishMicro(me, d, mqttConn)
+				points.GetReturn(me, d)
+				fmt.Println(d)
 			} else if s == thml {
 				d := decoder.Droplet(data, thml)
 				_log = fmt.Sprintf("decoder.Droplet %s", data)
 				printString(_log)
+				points.GetReturn(thml, d)
 				points.PublishDroplet(thml, d, mqttConn)
 			}
 		} else {

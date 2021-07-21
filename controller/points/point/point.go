@@ -1,6 +1,7 @@
 package point
 
 import (
+	"fmt"
 	modeldevices "github.com/NubeIO/nubeio-rubix-app-lora-go/model/devices"
 	modelpoints "github.com/NubeIO/nubeio-rubix-app-lora-go/model/points"
 	"github.com/NubeIO/nubeio-rubix-app-lora-go/response"
@@ -22,12 +23,10 @@ var childTable = "PointStores"
 func New(_db *gorm.DB) rest.IController {
 	c := rest.Controller("api/point")
 	c.POST("/", create)
-	c.SUB("/uuid")
-	c.GET("/", get)
-	c.PATCH("/", update)
-	c.DELETE("/", _delete)
 	c.SUB("/id")
-	c.GET("/", get)
+		c.GET("/", get)
+		c.PATCH("/", update)
+		c.DELETE("/", _delete)
 	db = _db
 	return c
 }
@@ -61,36 +60,36 @@ func create(ctx *gin.Context) rest.IResponse {
 }
 
 
-//func get(ctx *gin.Context) rest.IResponse {
-//	_uuid := resolveID(ctx)
-//	withChildren := withChild(ctx)
-//	query := "uuid = ? "
-//	if withChildren {
-//		_query := db.Where(query, _uuid).Preload(childTable).First(&deviceModel);if _query.Error != nil {
-//			return response.BadEntity(_query.Error.Error())
-//		}
-//		return response.Data(pointModel)
-//	} else {
-//		_query := db.Where(query, _uuid).First(&pointModel);if _query.Error != nil {
-//			return response.BadEntity(_query.Error.Error())
-//		}
-//		return response.Data(pointModel)
-//	}
-//}
+
+func resolveParameter(ctx *gin.Context) (query string, parameter string){
+	_uuid := resolveUUID(ctx)
+	id := resolveID(ctx)
+	if _uuid != "" {
+		return  "uuid = ? ", _uuid
+	} else if id != ""{
+		return  "id = ? ", id
+	}
+	return  "uuid = ? ", _uuid
+}
 
 func get(ctx *gin.Context) rest.IResponse {
-	_uuid := resolveID(ctx)
+	query, id := resolveParameter(ctx)
+
 	withChildren := withChild(ctx)
-	query := "uuid = ? "
 	if withChildren {
-		_query := db.Where(query, _uuid).Preload(childTable).First(&pointModel);if _query.Error != nil {
-			return response.BadEntity(_query.Error.Error())
+		_query := db.Where(query, id).Preload(childTable).First(&pointModel);if _query.Error != nil {
+			fmt.Println(3333)
+			return response.NotFound("not found")
 		}
+		fmt.Println(444444)
 		return response.Data(pointModel)
 	} else {
-		_query := db.Where(query, _uuid).First(&pointModel);if _query.Error != nil {
-			return response.BadEntity(_query.Error.Error())
+		fmt.Println(55555, "query", query)
+		_query := db.Where(query, id).First(&pointModel);if _query.Error != nil {
+			fmt.Println(6666)
+			return response.NotFound("not found")
 		}
+		fmt.Println(77777)
 		return response.Data(pointModel)
 	}
 }
@@ -113,7 +112,7 @@ func get(ctx *gin.Context) rest.IResponse {
 
 func update (ctx *gin.Context) rest.IResponse {
 	body, _ := getBODY(ctx)
-	_uuid := resolveID(ctx)
+	_uuid := resolveUUID(ctx)
 	query := db.Where("uuid = ?", _uuid).First(&pointModel);if query.Error != nil {
 		return response.BadEntity(query.Error.Error())
 	}
@@ -125,7 +124,7 @@ func update (ctx *gin.Context) rest.IResponse {
 
 
 func _delete(ctx *gin.Context) rest.IResponse {
-	_uuid := resolveID(ctx)
+	_uuid := resolveUUID(ctx)
 	query := db.Where("uuid = ? ", _uuid).Unscoped().Delete(&pointModel) ;if query.Error != nil {
 		return response.NotFound("point now found")
 	}
@@ -162,7 +161,12 @@ func withChild(ctx *gin.Context) bool {
 }
 
 
-func resolveID(ctx *gin.Context) string {
+func resolveUUID(ctx *gin.Context) string {
 	id := ctx.Query("uuid")
+	return id
+}
+
+func resolveID(ctx *gin.Context) string {
+	id := ctx.Query("id")
 	return id
 }

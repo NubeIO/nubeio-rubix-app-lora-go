@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func BadEntity(excepted ...string) rest.IResponse {
+func BadEntity(excepted string) rest.IResponse {
 	return rest.Failed(http.StatusUnprocessableEntity, excepted)
 }
 

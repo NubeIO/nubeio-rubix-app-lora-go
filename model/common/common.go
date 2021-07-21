@@ -6,6 +6,7 @@ type Common struct {
 	Name        			string `json:"name" validate:"min=1,max=255"  gorm:"type:varchar(255);unique;not null"`
 	Description 			string `json:"description"`
 	Id						string `json:"id"`
+	IdRef					string `json:"id_ref"`
 	Type					string `json:"type"`
 	Enable 					bool `json:"enable"`
 	Fault					bool  `json:"fault"`
