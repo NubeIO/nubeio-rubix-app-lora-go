@@ -1,11 +1,6 @@
 package main
 
 import (
-<<<<<<< HEAD
-
-
-=======
->>>>>>> 98031ccf71a9ecc1d588ed2dca3350631db4051e
 	"flag"
 	"fmt"
 	"github.com/NubeIO/nubeio-rubix-app-lora-go/controller/devices"
@@ -18,11 +13,6 @@ import (
 	"github.com/NubeIO/nubeio-rubix-app-lora-go/setup"
 	"github.com/NubeIO/nubeio-rubix-lib-mqtt-go/pkg/mqtt_lib"
 	"github.com/NubeIO/nubeio-rubix-lib-rest-go/rest"
-<<<<<<< HEAD
-
-
-=======
->>>>>>> 98031ccf71a9ecc1d588ed2dca3350631db4051e
 	"io/ioutil"
 	"log"
 
@@ -68,10 +58,6 @@ func main() {
 		return
 	}
 	db, err := setup.InitDB(_logging);if err != nil {
-<<<<<<< HEAD
-
-=======
->>>>>>> 98031ccf71a9ecc1d588ed2dca3350631db4051e
 		log.Println(err)
 		return
 	}
@@ -84,7 +70,6 @@ func main() {
 	go serial.SerialOpenAndRead(mqttConnection)
 
 
-
 	app := rest.New(3)
 	app.Controller(networks.New(db))
 	app.Controller(network.New(db))
@@ -92,10 +77,6 @@ func main() {
 	app.Controller(device.New(db))
 	app.Controller(points.New(db))
 	app.Controller(point.New(db))
-<<<<<<< HEAD
-
-=======
->>>>>>> 98031ccf71a9ecc1d588ed2dca3350631db4051e
 	app.Controller(points.ByName(db))
 	err = app.Run(":1920");if err != nil {
 		log.Println(err)
