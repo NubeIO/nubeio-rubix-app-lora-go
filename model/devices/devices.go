@@ -6,14 +6,14 @@ import (
 )
 
 type CommonDevice struct {
-	//Name        	string `json:"name" validate:"min=1,max=255"  gorm:"type:varchar(255);unique;not null"`
-	Manufacture 	string `json:"manufacture"`
-	Model 			string `json:"model"`
+	Manufacture 	string `json:"manufacture"` // nube
+	DeviceType		string `json:"device_type"` // droplet
+	Model 			string `json:"model"` // thml
 
 }
 
 type Device struct {
-	Uuid				string `json:"uuid"  gorm:"type:varchar(255);unique;primaryKey"`
+	modelcommon.CommonUUID
 	modelcommon.Common
 	NetworkUuid     	string  `json:"network_uuid" gorm:"TYPE:varchar(255) REFERENCES networks;not null;default:null"`
 	Point 				[]modelpoints.Point `json:"points" gorm:"constraint:OnDelete:CASCADE"`
