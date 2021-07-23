@@ -1,6 +1,7 @@
 package point
 
 import (
+	"errors"
 	"fmt"
 	modeldevices "github.com/NubeIO/nubeio-rubix-app-lora-go/model/devices"
 	modelpoints "github.com/NubeIO/nubeio-rubix-app-lora-go/model/points"
@@ -10,6 +11,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/validator.v2"
 	"gorm.io/gorm"
+)
+
+
+const (
+	ParameterNotSupported = "search parameter is not supported"
 )
 
 var db *gorm.DB
@@ -23,10 +29,10 @@ var childTable = "PointStores"
 func New(_db *gorm.DB) rest.IController {
 	c := rest.Controller("api/point")
 	c.POST("/", create)
-	c.SUB("/id")
-		c.GET("/", get)
-		c.PATCH("/", update)
-		c.DELETE("/", _delete)
+	c.SUB("/:uuid").
+		GET("/", get).
+		PATCH("/", update).
+		DELETE("/", _delete)
 	db = _db
 	return c
 }
@@ -60,60 +66,29 @@ func create(ctx *gin.Context) rest.IResponse {
 }
 
 
-
-func resolveParameter(ctx *gin.Context) (query string, parameter string){
-	_uuid := resolveUUID(ctx)
-	id := resolveID(ctx)
-	if _uuid != "" {
-		return  "uuid = ? ", _uuid
-	} else if id != ""{
-		return  "id = ? ", id
-	}
-	return  "uuid = ? ", _uuid
-}
-
 func get(ctx *gin.Context) rest.IResponse {
-	query, id := resolveParameter(ctx)
-
+	qString, id, err := resolveParameter(ctx); if err != nil {
+		return response.NotFound("query not parameter supported")
+	}
 	withChildren := withChild(ctx)
 	if withChildren {
-		_query := db.Where(query, id).Preload(childTable).First(&pointModel);if _query.Error != nil {
-			fmt.Println(3333)
+		query := db.Where(qString, id).Preload(childTable).First(&pointModel);if query.Error != nil {
 			return response.NotFound("not found")
 		}
-		fmt.Println(444444)
 		return response.Data(pointModel)
 	} else {
-		fmt.Println(55555, "query", query)
-		_query := db.Where(query, id).First(&pointModel);if _query.Error != nil {
-			fmt.Println(6666)
-			return response.NotFound("not found")
+		query := db.Where(qString, id).First(&pointModel);if query.Error != nil {
+			return response.NotFound(query.Error.Error())
 		}
-		fmt.Println(77777)
 		return response.Data(pointModel)
 	}
 }
-
-//func get2(ctx *gin.Context, query string, field string, withChildren bool) (pointModel,  error) {
-//
-//	if withChildren {
-//		_query := db.Where(query, field).Preload(childTable).First(&deviceModel);if _query.Error != nil {
-//			return pointModel, _query.Error
-//		}
-//		return pointModel, nil
-//	} else {
-//		_query := db.Where(query, field).First(&pointModel);if _query.Error != nil {
-//			return response.BadEntity(_query.Error.Error())
-//		}
-//		return response.Data(pointModel)
-//	}
-//}
 
 
 func update (ctx *gin.Context) rest.IResponse {
 	body, _ := getBODY(ctx)
-	_uuid := resolveUUID(ctx)
-	query := db.Where("uuid = ?", _uuid).First(&pointModel);if query.Error != nil {
+	uid := resolveUUID(ctx)
+	query := db.Where("uuid = ?", uid).First(&pointModel);if query.Error != nil {
 		return response.BadEntity(query.Error.Error())
 	}
 	query = db.Model(&pointModel).Updates(body);if query.Error != nil {
@@ -124,17 +99,16 @@ func update (ctx *gin.Context) rest.IResponse {
 
 
 func _delete(ctx *gin.Context) rest.IResponse {
-	_uuid := resolveUUID(ctx)
-	query := db.Where("uuid = ? ", _uuid).Unscoped().Delete(&pointModel) ;if query.Error != nil {
-		return response.NotFound("point now found")
+	uid := resolveUUID(ctx)
+	query := db.Where("uuid = ? ", uid).Unscoped().Delete(&pointModel) ;if query.Error != nil {
+		return response.NotFound(query.Error.Error())
 	}
 	r := query.RowsAffected
 	if r == 0 {
-		return response.NotFound("point now found")
+		return response.NotFound(query.Error.Error())
 	} else {
 		return response.OKWithMessage("point deleted")
 	}
-
 }
 
 
@@ -161,8 +135,51 @@ func withChild(ctx *gin.Context) bool {
 }
 
 
+func resolveParameter(ctx *gin.Context) (query string, parameter string, err error){
+	id := resolveID(ctx)
+	uid := resolveUUID(ctx)
+	name := resolveName(ctx)
+	objectType := resolveObject(ctx)
+	deviceName := resolveDeviceName(ctx)
+	networkName := resolveNetworkName(ctx)
+	fmt.Println(deviceName, networkName, 99999999)
+	if id != ""{
+		return  "id = ? ", id, nil
+	} else if id != ""{
+		return  "uuid = ? ", uid, nil
+	} else if id != ""{
+		return  "name = ? ", name, nil
+	} else if id != ""{
+		return  "object_type = ? ", objectType, nil
+	}
+	return  "", "", errors.New(ParameterNotSupported)
+}
+
+func resolveObject(ctx *gin.Context) string {
+	id := ctx.Query("objectType")
+	return id
+}
+
 func resolveUUID(ctx *gin.Context) string {
 	id := ctx.Query("uuid")
+	//id := ctx.Query("uuid")
+	//network := ctx.Param("network")
+	fmt.Println(666666, ctx.Query("uuid"), 666666 ,ctx.Param("uuid"))
+
+	return id
+}
+
+func resolveName(ctx *gin.Context) string {
+	id := ctx.Query("name")
+	return id
+}
+func resolveDeviceName(ctx *gin.Context) string {
+	id := ctx.Query("deviceName")
+	return id
+}
+
+func resolveNetworkName(ctx *gin.Context) string {
+	id := ctx.Query("networkName")
 	return id
 }
 

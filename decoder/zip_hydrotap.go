@@ -26,48 +26,48 @@ type TZipHydrotapPoll struct {
 type TZHTPayloadType int
 
 const (
-	ERROR_DATA  = 0
-	STATIC_DATA = 1
-	WRITE_DATA  = 2
-	POLL_DATA   = 3
+	ErrorData = 0
+	StaticData = 1
+	WriteData  = 2
+	PollData   = 3
 )
 
 func ZipHydrotap(data string, sensor TSensorType) (TZipHydrotapBase, interface{}) {
 	switch pl := ZHtGetPayloadType(data); pl {
-	case STATIC_DATA:
-		payload_full := ZHtStaticPayloadDecoder(data)
-		common_data := Common(data, sensor)
-		payload_full.CommonValues = common_data
-		return payload_full.TZipHydrotapBase, payload_full
-	case WRITE_DATA:
-		payload_full := ZHtWritePayloadDecoder(data)
-		common_data := Common(data, sensor)
-		payload_full.CommonValues = common_data
-		return payload_full.TZipHydrotapBase, payload_full
-	case POLL_DATA:
-		payload_full := ZHtPollPayloadDecoder(data)
-		common_data := Common(data, sensor)
-		payload_full.CommonValues = common_data
-		return payload_full.TZipHydrotapBase, payload_full
+	case StaticData:
+		payloadFull := ZHtStaticPayloadDecoder(data)
+		commonData := Common(data, sensor)
+		payloadFull.CommonValues = commonData
+		return payloadFull.TZipHydrotapBase, payloadFull
+	case WriteData:
+		payloadFull := ZHtWritePayloadDecoder(data)
+		commonData := Common(data, sensor)
+		payloadFull.CommonValues = commonData
+		return payloadFull.TZipHydrotapBase, payloadFull
+	case PollData:
+		payloadFull := ZHtPollPayloadDecoder(data)
+		commonData := Common(data, sensor)
+		payloadFull.CommonValues = commonData
+		return payloadFull.TZipHydrotapBase, payloadFull
 	}
 
 	return TZipHydrotapBase{}, nil
 }
 
 func ZHtGetPayloadType(data string) TZHTPayloadType {
-	pl_id, _ := strconv.ParseInt(data[12:14], 16, 0)
-	return TZHTPayloadType(pl_id)
+	plId, _ := strconv.ParseInt(data[12:14], 16, 0)
+	return TZHTPayloadType(plId)
 }
 
 func ZHtCheckPayloadLength(data string) bool {
-	payload_length := len(data) - 10 // removed addr, nonce and MAC
-	payload_length /= 2
-	payload_type := ZHtGetPayloadType(data)
-	data_length, _ := strconv.ParseInt(data[14:16], 16, 0)
+	payloadLength := len(data) - 10 // removed addr, nonce and MAC
+	payloadLength /= 2
+	payloadType := ZHtGetPayloadType(data)
+	dataLength, _ := strconv.ParseInt(data[14:16], 16, 0)
 
-	return (payload_type == STATIC_DATA && data_length == 93) ||
-		(payload_type == WRITE_DATA && data_length == 23) ||
-		(payload_type == POLL_DATA && data_length == 40)
+	return (payloadType == StaticData && dataLength == 93) ||
+		(payloadType == WriteData && dataLength == 23) ||
+		(payloadType == PollData && dataLength == 40)
 }
 
 func ZHtStaticPayloadDecoder(data string) TZipHydrotapStatic {

@@ -8,10 +8,11 @@ import (
 //https://project-haystack.org/doc/appendix/protocol
 
 type Network struct {
-	Uuid			string 		`json:"uuid"  gorm:"type:varchar(255);unique;primaryKey"`
+	modelcommon.CommonUUID
 	modelcommon.Common
 	Manufacture 	string `json:"manufacture"`
 	Model 			string `json:"model"`
+	NetworkType		string `json:"network_type"`
 	Device 			[]modeldevices.Device `json:"devices" gorm:"constraint:OnDelete:CASCADE;"`
 }
 
