@@ -10,13 +10,13 @@ import (
 	"log"
 )
 
-func InitDB(DisableLogging bool) (*gorm.DB, error) {
+func InitDB(EnableLogging bool) (*gorm.DB, error) {
 	var args sql_config.Params
 	args.UseConfigFile = false
 	var config sql_config.Database
 	config.DbName = "test.db"
 	config.DbPath = "./"
-	config.Logging = !DisableLogging
+	config.Logging = EnableLogging
 
 	err := sql_config.SetSqliteConfig(config, args); if err != nil {
 		log.Println(err)
