@@ -3,15 +3,15 @@ package serial
 import (
 	"encoding/json"
 	"errors"
-	"go.bug.st/serial"
 	"io/ioutil"
 	"os"
+
+	"go.bug.st/serial"
 )
 
 var (
 	S Serial
 )
-
 
 type Serial struct {
 	Enable   bool
@@ -23,18 +23,16 @@ type Serial struct {
 	Timeout  int
 }
 
-type Params struct 	{
+type Params struct {
 	UseConfigFile bool
 	ConfigFile    string
 	GenerateFile  bool
 }
 
-
-
 //SetSerialConfig
 // if args Params.GenerateFile is true this will create a json serial_config file and will disregard
 // if args Params.UseConfigFile is true is will use a local serial_config file
-func SetSerialConfig (config Serial, args Params) error {
+func SetSerialConfig(config Serial, args Params) error {
 	if !args.UseConfigFile {
 		S = config
 	} else {
@@ -66,10 +64,6 @@ func SetSerialConfig (config Serial, args Params) error {
 	return nil
 }
 
-func GetSerialConfig()  Serial {
+func GetSerialConfig() Serial {
 	return S
 }
-
-
-
-

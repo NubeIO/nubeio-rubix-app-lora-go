@@ -1,28 +1,33 @@
 package decoder
 
-import "strconv"
+import (
+	"strconv"
+)
 
 type TMicroEdge struct {
-	Sensor        		string `json:"sensor"`
-	Id            		string `json:"id"`
-	Rssi 				int `json:"rssi"`
-	Voltage 			int  `json:"voltage"`
-	Pulse         		int `json:"pulse"`
-	AI1 				float64 `json:"ai_1"`
-	AI2 				float64 `json:"ai_2"`
-	AI3 				float64 `json:"ai_3"`
+	CommonValues
+	Voltage int     `json:"voltage"`
+	Pulse   int     `json:"pulse"`
+	AI1     float64 `json:"ai_1"`
+	AI2     float64 `json:"ai_2"`
+	AI3     float64 `json:"ai_3"`
 }
 
-func MicroEdge(data string, sensor string) TMicroEdge {
-	d := Common(data)
-	_id := d.id
-	_rssi := d.rssi
+func MicroEdge(data string, sensor TSensorType) TMicroEdge {
+	d := Common(data, sensor)
 	_pulse := pulse(data)
 	_ai1 := ai1(data)
 	_ai2 := ai2(data)
 	_ai3 := ai3(data)
 	_voltage := voltage(data)
-	_v := TMicroEdge{Sensor: sensor, Id: _id, Rssi: _rssi, Voltage: _voltage, Pulse: _pulse, AI1: _ai1, AI2: _ai2, AI3: _ai3}
+	_v := TMicroEdge{
+		CommonValues: d,
+		Voltage:      _voltage,
+		Pulse:        _pulse,
+		AI1:          _ai1,
+		AI2:          _ai2,
+		AI3:          _ai3,
+	}
 	return _v
 }
 
