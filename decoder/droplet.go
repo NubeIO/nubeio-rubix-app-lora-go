@@ -4,28 +4,54 @@ import (
 	"strconv"
 )
 
-
-type TDroplet struct {
-	Sensor                  string `json:"sensor"`
-	Id                      string `json:"id"`
-	Rssi 					int `json:"rssi"`
-	Voltage           		int `json:"voltage"`
-	Temperature             float64 `json:"temperature"`
-	Humidity 				int `json:"humidity"`
-	Light 					int `json:"light"`
-	Motion 					int `json:"motion"`
+type TDropletTH struct {
+	CommonValues
+	Voltage     int     `json:"voltage"`
+	Temperature float64 `json:"temperature"`
+	Humidity    int     `json:"humidity"`
 }
 
-func Droplet(data string, sensor string) TDroplet {
-	d := Common(data)
-	_id := d.id
-	_rssi := d.rssi
+type TDropletTHL struct {
+	TDropletTH
+	Light int `json:"light"`
+}
+
+type TDropletTHLM struct {
+	TDropletTHL
+	Motion int `json:"motion"`
+}
+
+func DropletTH(data string, sensor TSensorType) TDropletTH {
+	d := Common(data, sensor)
 	_temperature := dropletTemp(data)
 	_humidity := dropletHumidity(data)
 	_voltage := dropletVoltage(data)
+	_v := TDropletTH{
+		CommonValues: d,
+		Voltage:      _voltage,
+		Temperature:  _temperature,
+		Humidity:     _humidity,
+	}
+	return _v
+}
+
+func DropletTHL(data string, sensor TSensorType) TDropletTHL {
+	d := DropletTH(data, sensor)
 	_light := dropletLight(data)
+	_v := TDropletTHL{
+		TDropletTH: d,
+		Light:      _light,
+	}
+	return _v
+}
+
+func DropletTHLM(data string, sensor TSensorType) TDropletTHLM {
+	d := DropletTHL(data, sensor)
 	_motion := dropletMotion(data)
-	_v := TDroplet{Sensor: sensor, Id: _id, Rssi: _rssi, Voltage: _voltage, Temperature: _temperature, Humidity: _humidity, Light: _light, Motion: _motion}
+	_v := TDropletTHLM{
+		TDropletTHL: d,
+		Motion:      _motion,
+	}
 	return _v
 }
 

@@ -1,70 +1,137 @@
 package decoder
 
 import (
+	"log"
 	"strconv"
 )
 
-type SensorTypes string
-
-var sensorCodes = struct {
-	MicroAa   SensorTypes
-	DropletAb SensorTypes
-	DropletB0 SensorTypes
-	DropletB1 SensorTypes
-	DropletB2 SensorTypes
-}{
-	MicroAa:   "AA",
-	DropletAb: "AB",
-	DropletB0: "B0",
-	DropletB1: "B1",
-	DropletB2: "B2",
+// TODO: move this
+func printString(msg string) {
+	log.Println(msg)
 }
 
-var SensorNames = struct {
-	ME   SensorTypes
-	TH   SensorTypes
-	THL  SensorTypes
-	THML SensorTypes
-}{
-	ME:   "ME",
-	TH:   "TH",
-	THL:  "THL",
-	THML: "THML",
-}
+type TSensorType string
 
-func CheckSensorType(data string) string {
+const (
+	ME   TSensorType = "ME"
+	TH   TSensorType = "TH"
+	THL  TSensorType = "THL"
+	THLM TSensorType = "THLM"
+	ZHT  TSensorType = "ZHT"
+)
+
+type TSensorCode string
+
+const (
+	MicroAA       TSensorCode = "AA"
+	DropletAB     TSensorCode = "AB"
+	DropletB0     TSensorCode = "B0"
+	DropletB1     TSensorCode = "B1"
+	DropletB2     TSensorCode = "B2"
+	ZipHydrotapD1 TSensorCode = "D1"
+)
+
+func GetSensorType(data string) TSensorType {
 	sensor := data[2:4]
 
 	switch sensor {
-	case string(sensorCodes.MicroAa):
-		return string(SensorNames.ME)
-	case string(sensorCodes.DropletB2):
-		return string(SensorNames.THML)
+	case string(MicroAA):
+		return ME
+	case string(DropletB0):
+		return TH
+	case string(DropletB1):
+		return THL
+	case string(DropletB2):
+		return THLM
+	case string(ZipHydrotapD1):
+		return ZHT
 	default:
 		return "None"
 	}
+}
 
+func CheckSensorCode(data string) TSensorCode {
+	sensor := data[2:4]
+
+	switch sensor {
+	case string(MicroAA):
+		return MicroAA
+	case string(DropletB2):
+		return DropletB2
+	case string(ZipHydrotapD1):
+		return ZipHydrotapD1
+	default:
+		return "None"
+	}
 }
 
 func CheckPayloadLength(data string) bool {
+	log.Println(data)
 	dl := len(data)
-	if dl == 36 || dl == 32 || dl == 44 {
-		return true
-	} else {
+	if dl <= 4 {
 		return false
 	}
+	if data == "!\r\n" || data == "!\n" {
+		return false
+	}
+	switch id := CheckSensorCode(data); id {
+	case MicroAA:
+	case DropletB2:
+		return dl == 36 || dl == 32 || dl == 44
+	case ZipHydrotapD1:
+		return ZHtCheckPayloadLength(data)
+	default:
+		return false
+	}
+	return false
+}
 
+func DecodePayload(data string) (CommonValues, interface{}) {
+	s := GetSensorType(data)
+	var payload interface{} = nil
+	var common *CommonValues = nil
+	switch s {
+	case ME:
+		payload_full := MicroEdge(data, ME)
+		common = &payload_full.CommonValues
+		payload = payload_full
+	case TH:
+		payload_full := DropletTH(data, TH)
+		common = &payload_full.CommonValues
+		payload = payload_full
+	case THL:
+		payload_full := DropletTHL(data, THL)
+		common = &payload_full.CommonValues
+		payload = payload_full
+	case THLM:
+		payload_full := DropletTHLM(data, THLM)
+		common = &payload_full.CommonValues
+		payload = payload_full
+	case ZHT:
+		base, payload_full := ZipHydrotap(data, ZHT)
+		common = &base.CommonValues
+		payload = payload_full
+	default:
+		log.Printf("ERROR! No decoder for sensor type: %s", s)
+		return CommonValues{}, nil
+	}
+	return *common, payload
 }
 
 type CommonValues struct {
-	id   string
-	rssi int
+	Sensor string `json:"sensor"`
+	Id     string `json:"id"`
+	Rssi   int    `json:"rssi"`
 }
 
-func Common(data string) CommonValues {
-	id := decodeID(data)
+func Common(data string, sensor TSensorType) CommonValues {
+	_id := decodeID(data)
 	_rssi := rssi(data)
-	_v := CommonValues{id: id, rssi: _rssi}
+	_v := CommonValues{
+		Sensor: string(sensor),
+		Id:     _id,
+		Rssi:   _rssi,
+	}
 	return _v
 }
 

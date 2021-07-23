@@ -1,8 +1,9 @@
 package setup
 
 import (
-	"github.com/NubeIO/nubeio-rubix-app-lora-go/serial"
 	"log"
+
+	"github.com/NubeIO/nubeio-rubix-app-lora-go/serial"
 )
 
 func InitSerial() error {
@@ -13,10 +14,10 @@ func InitSerial() error {
 	config.Port = "/dev/ttyACM0"
 	config.BaudRate = 38400
 
-	err := serial.SetSerialConfig(config, args); if err != nil {
+	err := serial.SetSerialConfig(config, args)
+	if err != nil {
 		log.Println(err)
 		return err
 	}
 	return nil
 }
-
