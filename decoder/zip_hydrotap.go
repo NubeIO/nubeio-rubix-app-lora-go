@@ -4,12 +4,14 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"math"
 	"strconv"
 )
 
 type TZipHydrotapBase struct {
 	CommonValues
+	PayloadType string `json:"payload_type"`
 }
 
 type TZipHydrotapStatic struct {
@@ -89,21 +91,25 @@ const ZHT_HEX_STR_DATA_START = 14
 
 func ZipHydrotap(data string, sensor TSensorType) (TZipHydrotapBase, interface{}) {
 	bytes := ZHtGetPayloadBytes(data)
+	log.Printf("ZHT BYTES: %d", len(bytes))
 	switch pl := ZHtGetPayloadType(data); pl {
 	case StaticData:
 		payload_full := ZHtStaticPayloadDecoder(bytes)
 		common_data := Common(data, sensor)
 		payload_full.CommonValues = common_data
+		payload_full.PayloadType = "static"
 		return payload_full.TZipHydrotapBase, payload_full
 	case WriteData:
 		payload_full := ZHtWritePayloadDecoder(bytes)
 		common_data := Common(data, sensor)
 		payload_full.CommonValues = common_data
+		payload_full.PayloadType = "write"
 		return payload_full.TZipHydrotapBase, payload_full
 	case PollData:
 		payload_full := ZHtPollPayloadDecoder(bytes)
 		common_data := Common(data, sensor)
 		payload_full.CommonValues = common_data
+		payload_full.PayloadType = "poll"
 		return payload_full.TZipHydrotapBase, payload_full
 	}
 
@@ -120,37 +126,56 @@ func ZHtCheckPayloadLength(data string) bool {
 	payload_length /= 2
 	payload_type := ZHtGetPayloadType(data)
 	data_length, _ := strconv.ParseInt(data[12:14], 16, 0)
+	log.Printf("ZHT data_length: %d\n", data_length)
 
-	return (payload_type == StaticData && data_length == 92) ||
-		(payload_type == WriteData && data_length == 22) ||
-		(payload_type == PollData && data_length == 39)
+	return (payload_type == StaticData && data_length == 93 && payload_length > 93) ||
+		(payload_type == WriteData && data_length == 23 && payload_length > 23) ||
+		(payload_type == PollData && data_length == 40 && payload_length > 40)
 }
 
 func ZHtGetPayloadBytes(data string) []byte {
 	length, _ := strconv.ParseInt(data[12:14], 16, 0)
-	bytes, _ := hex.DecodeString(data[16:length])
+	bytes, _ := hex.DecodeString(data[14 : 14+length*2])
 	return bytes
+}
+
+func ZHtBytesToString(bytes []byte) string {
+	str := ""
+	// fmt.Println()
+	for _, b := range bytes {
+		if b == 0 {
+			break
+		}
+		str += string(b)
+		// fmt.Printf("%d,", b)
+	}
+	// fmt.Println()
+	return str
+}
+
+func ZHtBytesToDate(bytes []byte) string {
+	return fmt.Sprintf("%d/%d/%d", bytes[0], bytes[1], bytes[2])
 }
 
 func ZHtStaticPayloadDecoder(data []byte) TZipHydrotapStatic {
 	index := 1
-	sn := string(data[index : index+15])
+	sn := ZHtBytesToString(data[index : index+15])
 	index += 15
-	mn := string(data[index : index+20])
+	mn := ZHtBytesToString(data[index : index+20])
 	index += 20
-	pn := string(data[index : index+20])
+	pn := ZHtBytesToString(data[index : index+20])
 	index += 20
-	fw := string(data[index : index+20])
+	fw := ZHtBytesToString(data[index : index+20])
 	index += 20
-	cal_date := string(data[index : index+3])
+	cal_date := ZHtBytesToDate(data[index : index+3])
 	index += 3
-	f50l_date := string(data[index : index+3])
+	f50l_date := ZHtBytesToDate(data[index : index+3])
 	index += 3
-	filt_log_date_int := string(data[index : index+3])
+	filt_log_date_int := ZHtBytesToDate(data[index : index+3])
 	index += 3
 	filt_log_litres_int := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
-	filt_log_date_ext := string(data[index : index+3])
+	filt_log_date_ext := ZHtBytesToDate(data[index : index+3])
 	index += 3
 	filt_log_litres_ext := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
@@ -170,7 +195,7 @@ func ZHtStaticPayloadDecoder(data []byte) TZipHydrotapStatic {
 
 func ZHtWritePayloadDecoder(data []byte) TZipHydrotapWrite {
 	index := 1
-	time := string(binary.LittleEndian.Uint32(data[index : index+4]))
+	time := fmt.Sprintf("%d", binary.LittleEndian.Uint32(data[index:index+4]))
 	index += 4
 	disp_b := int(data[index])
 	index += 1
@@ -178,7 +203,7 @@ func ZHtWritePayloadDecoder(data []byte) TZipHydrotapWrite {
 	index += 1
 	disp_s := int(data[index])
 	index += 1
-	temp_sp_b := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 100
+	temp_sp_b := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
 	temp_sp_c := int(data[index])
 	index += 1
@@ -229,13 +254,13 @@ func ZHtPollPayloadDecoder(data []byte) TZipHydrotapPoll {
 	w_cov := (data[index]>>7)&1 == 1
 	sms := int8((data[index]) & 0x3F)
 	index += 1
-	temp_b := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 100
+	temp_b := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	temp_c := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 100
+	temp_c := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	temp_s := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 100
+	temp_s := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	temp_cond := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 100
+	temp_cond := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
 	f1 := data[index]
 	index += 1
@@ -261,6 +286,7 @@ func ZHtPollPayloadDecoder(data []byte) TZipHydrotapPoll {
 	index += 2
 	fltr_wrn_int := (data[index]>>1)&1 == 1
 	fltr_wrn_ext := (data[index]>>0)&1 == 1
+	index += 1
 	fltr_nfo_use_ltr_int := binary.LittleEndian.Uint16(data[index : index+2])
 	index += 2
 	fltr_nfo_use_day_int := binary.LittleEndian.Uint16(data[index : index+2])
