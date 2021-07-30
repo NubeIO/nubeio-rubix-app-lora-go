@@ -26,10 +26,10 @@ type TZipHydrotapPoll struct {
 type TZHTPayloadType int
 
 const (
-	ErrorData = 0
-	StaticData = 1
-	WriteData  = 2
-	PollData   = 3
+	ErrorData = iota
+	StaticData
+	WriteData
+	PollData
 )
 
 func ZipHydrotap(data string, sensor TSensorType) (TZipHydrotapBase, interface{}) {

@@ -2,21 +2,19 @@ package points
 
 import (
 	"encoding/json"
-	"log"
-	"math"
-
 	"github.com/NubeIO/nubeio-rubix-app-lora-go/decoder"
 	"github.com/NubeIO/nubeio-rubix-lib-mqtt-go/pkg/mqtt_lib"
+	"log"
+	"math"
 )
 
-func PublishSensor(common_sensor_data decoder.CommonValues, sensor_struct interface{}, mqttConn *mqtt_lib.MqttConnection) {
-	jsonValue, _ := json.Marshal(sensor_struct)
-	PublishJSON(common_sensor_data, jsonValue, mqttConn)
+func PublishSensor(commonSensorData decoder.CommonValues, sensorStruct interface{}, mqttConn *mqtt_lib.MqttConnection) {
+	jsonValue, _ := json.Marshal(sensorStruct)
+	PublishJSON(commonSensorData, jsonValue, mqttConn)
 }
 
-func PublishJSON(common_sensor_data decoder.CommonValues, jsonValue []byte, mqttConn *mqtt_lib.MqttConnection) {
-	topic := "test-topic/" + string(common_sensor_data.Id)
-
+func PublishJSON(commonSensorData decoder.CommonValues, jsonValue []byte, mqttConn *mqtt_lib.MqttConnection) {
+	topic := "test-topic/" + string(commonSensorData.Id)
 	log.Printf("MQTT PUB: {\"topic\": \"%s\", \"payload\": \"%s\"}", topic, string(jsonValue))
 	mqttConn.Publish(string(jsonValue), topic)
 }

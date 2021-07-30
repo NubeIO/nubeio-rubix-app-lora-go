@@ -9,7 +9,9 @@ import (
 
 type Network struct {
 	modelcommon.CommonUUID
+	modelcommon.CommonNameUnique
 	modelcommon.Common
+	modelcommon.Created
 	Manufacture 	string `json:"manufacture"`
 	Model 			string `json:"model"`
 	NetworkType		string `json:"network_type"`
