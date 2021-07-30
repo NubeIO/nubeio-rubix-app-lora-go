@@ -17,20 +17,30 @@ func ByName(_db *gorm.DB) rest.IController {
 	return c
 }
 
+
+
 var pointModel []modelpoints.Point
 var networkModel []modelnetworks.Network
 var deviceModel []modeldevices.Device
-
+var childTable = "PointStore"
+var PriorityArrayModel = "PriorityArrayModel"
 
 
 func getByName(ctx *gin.Context) rest.IResponse {
 	network := ctx.Param("network")
 	device := ctx.Param("device")
 	point := ctx.Param("point")
-	db.Table("points").Select("points.name AS name, points.uuid AS uuid, points.description AS description").
+	query := db.Table("points").Select("points.uuid AS uuid").
 		Joins("JOIN devices").
 		Joins("JOIN networks").
-		Where("points.name = ? AND devices.name = ? AND networks.name = ? ",point, device, network).First(&pointModel)
+		Where("points.name = ? AND devices.name = ? AND networks.name = ? ",point, device, network).First(&pointModel);if query.Error != nil {
+		return response.NotFound("not found")
+	}
+	uuid := pointModel[0].Uuid
+	db.Where("uuid = ?", uuid).Preload(childTable).Preload(PriorityArrayModel).First(&pointModel);if query.Error != nil {
+		return response.NotFound("not found")
+	}
 	return response.Data(pointModel)
+
 
 }

@@ -1,6 +1,9 @@
 package modelpoints
 
-import modelcommon "github.com/NubeIO/nubeio-rubix-app-lora-go/model/common"
+import (
+	modelcommon "github.com/NubeIO/nubeio-rubix-app-lora-go/model/common"
+	"time"
+)
 
 type CommonPoint struct {
 	Writeable 		bool   `json:"writeable"`
@@ -21,7 +24,9 @@ type Association struct {
 
 type Point struct {
 	Uuid						string `json:"uuid" gorm:"type:varchar(255);unique;not null;default:null;primaryKey"`
+	modelcommon.CommonName
 	modelcommon.Common
+	modelcommon.Created
 	DeviceUuid     				string `json:"device_uuid" gorm:"TYPE:string REFERENCES devices;not null;default:null"`
 	CommonPoint
 	EquipRef 					[]EquipRef `json:"equip_ref" gorm:"default:null"`
@@ -32,26 +37,31 @@ type Point struct {
 
 type PointStore struct {
 	PointUuid     	string `json:"point_uuid" gorm:"REFERENCES points;not null;default:null;primaryKey"`
-	Value  			float64 `json:"value"`
+	modelcommon.Created
+	Value  			string `json:"value" sql:"DEFAULT:NULL"`
+
 }
 
 type PriorityArrayModel struct {
 	PointUuid     	string `json:"point_uuid" gorm:"REFERENCES points;not null;default:null;primaryKey"`
-	P1  			string `json:"_1" gorm:"default:null"`
-	P2  			string `json:"_2" gorm:"default:null"`
-	P3  			string `json:"_3" gorm:"default:null"`
-	P4  			string `json:"_4" gorm:"default:null"`
-	P5  			string `json:"_5" gorm:"default:null"`
-	P6  			string `json:"_6" gorm:"default:null"`
-	P7  			string `json:"_7" gorm:"default:null"`
-	P8  			string `json:"_8" gorm:"default:null"`
-	P9  			string `json:"_9" gorm:"default:null"`
-	P10  			string `json:"_10" gorm:"default:null"`
-	P11  			string `json:"_11" gorm:"default:null"`
-	P12  			string `json:"_12" gorm:"default:null"`
-	P13  			string `json:"_13" gorm:"default:null"`
-	P14  			string `json:"_14" gorm:"default:null"`
-	P15  			string `json:"_15" gorm:"default:null"`
-	P16  			string `json:"_16" gorm:"default:null"`
-	P17  			string `json:"_17" gorm:"default:null"`
+	modelcommon.Created
+	P1  			string `json:"_1"`
+	P1Ts			time.Time  `json:"ts_1_updated_on"`
+	P2  			string `json:"_2"`
+	P2Ts			time.Time  `json:"ts_2_updated_on"`
+	P3  			string `json:"_3"`
+	P4  			string `json:"_4"`
+	P5  			string `json:"_5"`
+	P6  			string `json:"_6"`
+	P7  			string `json:"_7"`
+	P8  			string `json:"_8"`
+	P9  			string `json:"_9"`
+	P10  			string `json:"_10"`
+	P11  			string `json:"_11"`
+	P12  			string `json:"_12"`
+	P13  			string `json:"_13"`
+	P14  			string `json:"_14"`
+	P15  			string `json:"_15"`
+	P16  			string `json:"_16"`
+	P17  			string `json:"_17"`
 }

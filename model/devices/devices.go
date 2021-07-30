@@ -14,7 +14,9 @@ type CommonDevice struct {
 
 type Device struct {
 	modelcommon.CommonUUID
+	modelcommon.CommonName
 	modelcommon.Common
+	modelcommon.Created
 	NetworkUuid     	string  `json:"network_uuid" gorm:"TYPE:varchar(255) REFERENCES networks;not null;default:null"`
 	Point 				[]modelpoints.Point `json:"points" gorm:"constraint:OnDelete:CASCADE"`
 

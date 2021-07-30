@@ -23,7 +23,8 @@ var db *gorm.DB
 var deviceModel []modeldevices.Device
 var pointModel []modelpoints.Point
 //var pointStore []modelpoints.PointStore
-var childTable = "PointStores"
+var childTable = "PointStore"
+var PriorityArrayModel = "PriorityArrayModel"
 
 
 func New(_db *gorm.DB) rest.IController {
@@ -70,18 +71,11 @@ func get(ctx *gin.Context) rest.IResponse {
 	qString, id, err := resolveParameter(ctx); if err != nil {
 		return response.NotFound("query not parameter supported")
 	}
-	withChildren := withChild(ctx)
-	if withChildren {
-		query := db.Where(qString, id).Preload(childTable).First(&pointModel);if query.Error != nil {
-			return response.NotFound("not found")
-		}
-		return response.Data(pointModel)
-	} else {
-		query := db.Where(qString, id).First(&pointModel);if query.Error != nil {
-			return response.NotFound(query.Error.Error())
-		}
-		return response.Data(pointModel)
+	query := db.Where(qString, id).Preload(childTable).Preload(PriorityArrayModel).First(&pointModel);if query.Error != nil {
+		return response.NotFound("not found")
 	}
+	return response.Data(pointModel)
+
 }
 
 
@@ -142,10 +136,10 @@ func resolveParameter(ctx *gin.Context) (query string, parameter string, err err
 	objectType := resolveObject(ctx)
 	deviceName := resolveDeviceName(ctx)
 	networkName := resolveNetworkName(ctx)
-	fmt.Println(deviceName, networkName, 99999999)
+	fmt.Println(deviceName, networkName, 8888,id, 9999,  uid, 99999999)
 	if id != ""{
 		return  "id = ? ", id, nil
-	} else if id != ""{
+	} else if uid != ""{
 		return  "uuid = ? ", uid, nil
 	} else if id != ""{
 		return  "name = ? ", name, nil
@@ -161,7 +155,7 @@ func resolveObject(ctx *gin.Context) string {
 }
 
 func resolveUUID(ctx *gin.Context) string {
-	id := ctx.Query("uuid")
+	id := ctx.Param("uuid")
 	//id := ctx.Query("uuid")
 	//network := ctx.Param("network")
 	fmt.Println(666666, ctx.Query("uuid"), 666666 ,ctx.Param("uuid"))
