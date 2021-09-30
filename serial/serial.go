@@ -26,19 +26,16 @@ func (c *TSerialConnection) Disconnect() error {
 	return c.Port.Close()
 }
 
-func SerialOpenAndRead(mqttConn *mqtt_lib.MqttConnection) {
+func SerialOpenAndRead(port string, baud int, mqttConn *mqtt_lib.MqttConnection) {
 	MqttConnection = mqttConn
-	NewSerialConnection()
+	settings := GetSerialConfig()
+	settings.Port = port
+	settings.BaudRate = baud
+	NewSerialConnection(settings)
 	SerialReadForever()
 }
 
-func NewSerialConnection() {
-	c := GetSerialConfig()
-	portName := c.Port
-	baudRate := c.BaudRate
-	parity := c.Parity
-	stopBits := c.StopBits
-	dataBits := c.DataBits
+func NewSerialConnection(settings TSerialSettings) {
 	if SerialConn.Connected {
 		log.Println("Existing serial port connection by this app is open So! close existing connection")
 		err := SerialConn.Disconnect()
@@ -47,16 +44,16 @@ func NewSerialConnection() {
 		}
 	}
 	m := &serial.Mode{
-		BaudRate: baudRate,
-		Parity:   parity,
-		DataBits: dataBits,
-		StopBits: stopBits,
+		BaudRate: settings.BaudRate,
+		Parity:   settings.Parity,
+		DataBits: settings.DataBits,
+		StopBits: settings.StopBits,
 	}
 	ports, _ := serial.GetPortsList()
 	SerialConn.ActivePortList = ports
-	log.Println("SerialPort try and connect to", portName)
-	log.Println(ports)
-	port, err := serial.Open(portName, m)
+	log.Println("SerialPort try and connect to", settings.Port)
+	// log.Println(ports)
+	port, err := serial.Open(settings.Port, m)
 	SerialConn.Port = port
 
 	if err != nil {
@@ -64,7 +61,7 @@ func NewSerialConnection() {
 		log.Fatal("ERROR ", err)
 	}
 	SerialConn.Connected = true
-	log.Println("Connected to serial port", portName)
+	log.Println("Connected to serial port", settings.Port)
 }
 
 func SerialReadForever() {
@@ -78,12 +75,12 @@ func SerialReadForever() {
 		var data = scanner.Text()
 		if decoder.CheckPayloadLength(data) {
 			count = count + 1
-			log.Printf("loop count %d", count)
+			log.Printf("message count %d\n", count)
 
 			common_data, full_data := decoder.DecodePayload(data)
 			points.PublishSensor(common_data, full_data, MqttConnection)
 		} else {
-			log.Printf("lora serial messsage size %d", len(data))
+			log.Printf("INVALID SERIAL! size: %d\n", len(data))
 		}
 	}
 }
