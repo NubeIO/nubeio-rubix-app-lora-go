@@ -28,26 +28,35 @@ type TZipHydrotapStatic struct {
 	FilterLogLitresExternal int    `json:"filter_log_litres_external"`
 }
 
+const ZipHTTimerLength = 7
+
+type TZipHydrotapTimer struct {
+	TimeStart   int  `json:"time_start"`
+	TimeStop    int  `json:"time_stop"`
+	EnableStart bool `json:"enable_start"`
+	EnableStop  bool `json:"enable_stop"`
+}
+
 type TZipHydrotapWrite struct {
 	TZipHydrotapBase
-	Time                   string  `json:"time"`
-	DispenseTimeBoiling    int     `json:"dispense_time_boiling"`
-	DispenseTimeChilled    int     `json:"dispense_time_chilled"`
-	DispenseTimeSparkling  int     `json:"dispense_time_sparkling"`
-	TemperatureSPBoiling   float32 `json:"temperature_sp_boiling"`
-	TemperatureSPChilled   float32 `json:"temperature_sp_chilled"`
-	TemperatureSPSparkling float32 `json:"temperature_sp_sparkling"`
-	// TODO: timers
-	SleepModeSetting              int8   `json:"sleep_mode_setting"`
-	FilterInfoWriteLitresInternal int    `json:"filter_info_write_litres_internal"`
-	FilterInfoWriteMonthsInternal int    `json:"filter_info_write_months_internal"`
-	FilterInfoWriteLitresExternal int    `json:"filter_info_write_litres_external"`
-	FilterInfoWriteMonthsExternal int    `json:"filter_info_write_months_external"`
-	SafetyAllowTapChanges         bool   `json:"safety_allow_tap_changes"`
-	SafetyLock                    bool   `json:"safety_lock"`
-	SafetyHotIsolation            bool   `json:"safety_hot_isolation"`
-	SecurityEnable                bool   `json:"security_enable"`
-	SecurityPin                   string `json:"security_pin"`
+	Time                         string                              `json:"time"`
+	DispenseTimeBoiling          int                                 `json:"dispense_time_boiling"`
+	DispenseTimeChilled          int                                 `json:"dispense_time_chilled"`
+	DispenseTimeSparkling        int                                 `json:"dispense_time_sparkling"`
+	TemperatureSPBoiling         float32                             `json:"temperature_sp_boiling"`
+	TemperatureSPChilled         float32                             `json:"temperature_sp_chilled"`
+	TemperatureSPSparkling       float32                             `json:"temperature_sp_sparkling"`
+	Timers                       [ZipHTTimerLength]TZipHydrotapTimer `json:"timers"`
+	SleepModeSetting             int                                 `json:"sleep_mode_setting"`
+	FilterInfoLifeLitresInternal int                                 `json:"filter_info_life_litres_internal"`
+	FilterInfoLifeMonthsInternal int                                 `json:"filter_info_life_months_internal"`
+	FilterInfoLifeLitresExternal int                                 `json:"filter_info_life_litres_external"`
+	FilterInfoLifeMonthsExternal int                                 `json:"filter_info_life_months_external"`
+	SafetyAllowTapChanges        bool                                `json:"safety_allow_tap_changes"`
+	SafetyLock                   bool                                `json:"safety_lock"`
+	SafetyHotIsolation           bool                                `json:"safety_hot_isolation"`
+	SecurityEnable               bool                                `json:"security_enable"`
+	SecurityPin                  string                              `json:"security_pin"`
 }
 
 type TZipHydrotapPoll struct {
@@ -129,7 +138,7 @@ func ZHtCheckPayloadLength(data string) bool {
 	log.Printf("ZHT data_length: %d\n", data_length)
 
 	return (payload_type == StaticData && data_length == 93 && payload_length > 93) ||
-		(payload_type == WriteData && data_length == 23 && payload_length > 23) ||
+		(payload_type == WriteData && data_length == 51 && payload_length > 51) ||
 		(payload_type == PollData && data_length == 40 && payload_length > 40)
 }
 
@@ -141,15 +150,12 @@ func ZHtGetPayloadBytes(data string) []byte {
 
 func ZHtBytesToString(bytes []byte) string {
 	str := ""
-	// fmt.Println()
 	for _, b := range bytes {
 		if b == 0 {
 			break
 		}
 		str += string(b)
-		// fmt.Printf("%d,", b)
 	}
-	// fmt.Println()
 	return str
 }
 
@@ -205,12 +211,25 @@ func ZHtWritePayloadDecoder(data []byte) TZipHydrotapWrite {
 	index += 1
 	temp_sp_b := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	temp_sp_c := int(data[index])
+	temp_sp_c := float32(int(data[index]))
 	index += 1
-	temp_sp_s := int(data[index])
+	temp_sp_s := float32(int(data[index]))
 	index += 1
-	// TODO: timers
-	sm := int8(data[index])
+
+	var timers [ZipHTTimerLength]TZipHydrotapTimer
+	var u16 uint16
+	for i := 0; i < ZipHTTimerLength; i++ {
+		u16 = binary.LittleEndian.Uint16(data[index : index+2])
+		timers[i].TimeStart = int(u16 % 10000)
+		timers[i].EnableStart = u16 >= 10000
+		index += 2
+		u16 = binary.LittleEndian.Uint16(data[index : index+2])
+		timers[i].TimeStop = int(u16 % 10000)
+		timers[i].EnableStop = u16 >= 10000
+		index += 2
+	}
+
+	sm := int(data[index])
 	index += 1
 	fil_lyf_ltr_int := binary.LittleEndian.Uint16(data[index : index+2])
 	index += 2
@@ -225,26 +244,27 @@ func ZHtWritePayloadDecoder(data []byte) TZipHydrotapWrite {
 	sf_hi := (data[index]>>0)&1 == 1
 	index += 1
 	secUI16 := binary.LittleEndian.Uint16(data[index : index+2])
-	sec_en := (secUI16>>15)&1 == 1
-	sec_pin := fmt.Sprintf("%.4d", secUI16&0x7FFF)
+	sec_en := secUI16 >= 10000
+	sec_pin := fmt.Sprintf("%.4d", (secUI16 % 10000))
 	return TZipHydrotapWrite{
-		Time:                          time,
-		DispenseTimeBoiling:           disp_b,
-		DispenseTimeChilled:           disp_c,
-		DispenseTimeSparkling:         disp_s,
-		TemperatureSPBoiling:          temp_sp_b,
-		TemperatureSPChilled:          float32(temp_sp_c),
-		TemperatureSPSparkling:        float32(temp_sp_s),
-		SleepModeSetting:              sm,
-		FilterInfoWriteLitresInternal: int(fil_lyf_ltr_int),
-		FilterInfoWriteMonthsInternal: fil_lyf_mnth_int,
-		FilterInfoWriteLitresExternal: int(fil_lyf_ltr_ext),
-		FilterInfoWriteMonthsExternal: fil_lyf_mnth_ext,
-		SafetyAllowTapChanges:         sf_tap,
-		SafetyLock:                    sf_l,
-		SafetyHotIsolation:            sf_hi,
-		SecurityEnable:                sec_en,
-		SecurityPin:                   sec_pin,
+		Time:                         time,
+		DispenseTimeBoiling:          disp_b,
+		DispenseTimeChilled:          disp_c,
+		DispenseTimeSparkling:        disp_s,
+		TemperatureSPBoiling:         temp_sp_b,
+		TemperatureSPChilled:         temp_sp_c,
+		TemperatureSPSparkling:       temp_sp_s,
+		Timers:                       timers,
+		SleepModeSetting:             sm,
+		FilterInfoLifeLitresInternal: int(fil_lyf_ltr_int),
+		FilterInfoLifeMonthsInternal: fil_lyf_mnth_int,
+		FilterInfoLifeLitresExternal: int(fil_lyf_ltr_ext),
+		FilterInfoLifeMonthsExternal: fil_lyf_mnth_ext,
+		SafetyAllowTapChanges:        sf_tap,
+		SafetyLock:                   sf_l,
+		SafetyHotIsolation:           sf_hi,
+		SecurityEnable:               sec_en,
+		SecurityPin:                  sec_pin,
 	}
 }
 
