@@ -298,11 +298,11 @@ func ZHtPollPayloadDecoder(data []byte) TZipHydrotapPoll {
 	index += 2
 	dlt_disp_s := binary.LittleEndian.Uint16(data[index : index+2])
 	index += 2
-	dlt_ltr_b := binary.LittleEndian.Uint16(data[index : index+2])
+	dlt_ltr_b := binary.LittleEndian.Uint16(data[index:index+2]) / 10
 	index += 2
-	dlt_ltr_c := binary.LittleEndian.Uint16(data[index : index+2])
+	dlt_ltr_c := binary.LittleEndian.Uint16(data[index:index+2]) / 10
 	index += 2
-	dlt_ltr_s := binary.LittleEndian.Uint16(data[index : index+2])
+	dlt_ltr_s := binary.LittleEndian.Uint16(data[index:index+2]) / 10
 	index += 2
 	fltr_wrn_int := (data[index]>>1)&1 == 1
 	fltr_wrn_ext := (data[index]>>0)&1 == 1
