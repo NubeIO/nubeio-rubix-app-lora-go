@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"math"
 	"strconv"
 )
 
@@ -47,7 +46,6 @@ type TZipHydrotapWrite struct {
 	TemperatureSPBoiling         float32                             `json:"temperature_sp_boiling"`
 	TemperatureSPChilled         float32                             `json:"temperature_sp_chilled"`
 	TemperatureSPSparkling       float32                             `json:"temperature_sp_sparkling"`
-	Timers                       [ZipHTTimerLength]TZipHydrotapTimer `json:"timers"`
 	SleepModeSetting             int                                 `json:"sleep_mode_setting"`
 	FilterInfoLifeLitresInternal int                                 `json:"filter_info_life_litres_internal"`
 	FilterInfoLifeMonthsInternal int                                 `json:"filter_info_life_months_internal"`
@@ -58,6 +56,7 @@ type TZipHydrotapWrite struct {
 	SafetyHotIsolation           bool                                `json:"safety_hot_isolation"`
 	SecurityEnable               bool                                `json:"security_enable"`
 	SecurityPin                  string                              `json:"security_pin"`
+	Timers                       [ZipHTTimerLength]TZipHydrotapTimer `json:"timers"`
 }
 
 type TZipHydrotapPoll struct {
@@ -299,7 +298,7 @@ func pollPayloadDecoder(data []byte) TZipHydrotapPoll {
 	index += 1
 	f4 := data[index]
 	index += 1
-	kwh := math.Float32frombits(binary.LittleEndian.Uint32(data[index : index+4]))
+	kwh := float32(binary.LittleEndian.Uint32(data[index:index+4])) * 0.1
 	index += 4
 	dlt_disp_b := binary.LittleEndian.Uint16(data[index : index+2])
 	index += 2
@@ -313,8 +312,8 @@ func pollPayloadDecoder(data []byte) TZipHydrotapPoll {
 	index += 2
 	dlt_ltr_s := binary.LittleEndian.Uint16(data[index:index+2]) / 10
 	index += 2
-	fltr_wrn_int := (data[index]>>1)&1 == 1
-	fltr_wrn_ext := (data[index]>>0)&1 == 1
+	fltr_wrn_int := (data[index]>>0)&1 == 1
+	fltr_wrn_ext := (data[index]>>1)&1 == 1
 	index += 1
 	fltr_nfo_use_ltr_int := binary.LittleEndian.Uint16(data[index : index+2])
 	index += 2
