@@ -16,6 +16,8 @@ type TZipHydrotapBase struct {
 
 type TZipHydrotapStatic struct {
 	TZipHydrotapBase
+	LoRaVersionMajor        uint8  `json:"lora_version_major"`
+	LoRaVersionMinor        uint8  `json:"lora_version_minor"`
 	SerialNumber            string `json:"serial_number"`
 	ModelNumber             string `json:"model_number"`
 	ProductNumber           string `json:"product_number"`
@@ -140,7 +142,7 @@ func ZHtCheckPayloadLength(data string) bool {
 	data_length, _ := strconv.ParseInt(data[12:14], 16, 0)
 	log.Printf("ZHT data_length: %d\n", data_length)
 
-	return (payload_type == StaticData && data_length == 94 && payload_length > 94) ||
+	return (payload_type == StaticData && data_length == 96 && payload_length > 96) ||
 		(payload_type == WriteData && data_length == 52 && payload_length > 52) ||
 		(payload_type == PollData && data_length == 41 && payload_length > 41)
 }
@@ -173,6 +175,10 @@ func bytesToDate(bytes []byte) string {
 
 func staticPayloadDecoder(data []byte) TZipHydrotapStatic {
 	index := 1
+	lvma := data[index]
+	index += 1
+	lvmi := data[index]
+	index += 1
 	sn := bytesToString(data[index : index+15])
 	index += 15
 	mn := bytesToString(data[index : index+20])
@@ -194,6 +200,8 @@ func staticPayloadDecoder(data []byte) TZipHydrotapStatic {
 	filt_log_litres_ext := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
 	return TZipHydrotapStatic{
+		LoRaVersionMajor:        lvma,
+		LoRaVersionMinor:        lvmi,
 		SerialNumber:            sn,
 		ModelNumber:             mn,
 		ProductNumber:           pn,
@@ -223,20 +231,6 @@ func writePayloadDecoder(data []byte) TZipHydrotapWrite {
 	index += 1
 	temp_sp_s := float32(int(data[index]))
 	index += 1
-
-	var timers [ZipHTTimerLength]TZipHydrotapTimer
-	var u16 uint16
-	for i := 0; i < ZipHTTimerLength; i++ {
-		u16 = binary.LittleEndian.Uint16(data[index : index+2])
-		timers[i].TimeStart = int(u16 % 10000)
-		timers[i].EnableStart = u16 >= 10000
-		index += 2
-		u16 = binary.LittleEndian.Uint16(data[index : index+2])
-		timers[i].TimeStop = int(u16 % 10000)
-		timers[i].EnableStop = u16 >= 10000
-		index += 2
-	}
-
 	sm := int(data[index])
 	index += 1
 	fil_lyf_ltr_int := binary.LittleEndian.Uint16(data[index : index+2])
@@ -254,6 +248,21 @@ func writePayloadDecoder(data []byte) TZipHydrotapWrite {
 	secUI16 := binary.LittleEndian.Uint16(data[index : index+2])
 	sec_en := secUI16 >= 10000
 	sec_pin := fmt.Sprintf("%.4d", (secUI16 % 10000))
+	index += 2
+
+	var timers [ZipHTTimerLength]TZipHydrotapTimer
+	var u16 uint16
+	for i := 0; i < ZipHTTimerLength; i++ {
+		u16 = binary.LittleEndian.Uint16(data[index : index+2])
+		timers[i].TimeStart = int(u16 % 10000)
+		timers[i].EnableStart = u16 >= 10000
+		index += 2
+		u16 = binary.LittleEndian.Uint16(data[index : index+2])
+		timers[i].TimeStop = int(u16 % 10000)
+		timers[i].EnableStop = u16 >= 10000
+		index += 2
+	}
+
 	return TZipHydrotapWrite{
 		Time:                         time,
 		DispenseTimeBoiling:          disp_b,
@@ -262,7 +271,6 @@ func writePayloadDecoder(data []byte) TZipHydrotapWrite {
 		TemperatureSPBoiling:         temp_sp_b,
 		TemperatureSPChilled:         temp_sp_c,
 		TemperatureSPSparkling:       temp_sp_s,
-		Timers:                       timers,
 		SleepModeSetting:             sm,
 		FilterInfoLifeLitresInternal: int(fil_lyf_ltr_int),
 		FilterInfoLifeMonthsInternal: fil_lyf_mnth_int,
@@ -273,6 +281,7 @@ func writePayloadDecoder(data []byte) TZipHydrotapWrite {
 		SafetyHotIsolation:           sf_hi,
 		SecurityEnable:               sec_en,
 		SecurityPin:                  sec_pin,
+		Timers:                       timers,
 	}
 }
 
