@@ -74,9 +74,9 @@ type TZipHydrotapPoll struct {
 	UsageWaterDeltaDispensesBoiling   int     `json:"usage_water_delta_dispenses_boiling"`
 	UsageWaterDeltaDispensesChilled   int     `json:"usage_water_delta_dispenses_chilled"`
 	UsageWaterDeltaDispensesSparkling int     `json:"usage_water_delta_dispenses_sparkling"`
-	UsageWaterDeltaLitresBoiling      int     `json:"usage_water_delta_litres_boiling"`
-	UsageWaterDeltaLitresChilled      int     `json:"usage_water_delta_litres_chilled"`
-	UsageWaterDeltaLitresSparkling    int     `json:"usage_water_delta_litres_sparkling"`
+	UsageWaterDeltaLitresBoiling      float32 `json:"usage_water_delta_litres_boiling"`
+	UsageWaterDeltaLitresChilled      float32 `json:"usage_water_delta_litres_chilled"`
+	UsageWaterDeltaLitresSparkling    float32 `json:"usage_water_delta_litres_sparkling"`
 	Fault1                            uint8   `json:"fault_1"`
 	Fault2                            uint8   `json:"fault_2"`
 	Fault3                            uint8   `json:"fault_3"`
@@ -315,11 +315,11 @@ func pollPayloadDecoder(data []byte) TZipHydrotapPoll {
 	index += 2
 	dlt_disp_s := binary.LittleEndian.Uint16(data[index : index+2])
 	index += 2
-	dlt_ltr_b := binary.LittleEndian.Uint16(data[index:index+2]) / 10
+	dlt_ltr_b := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	dlt_ltr_c := binary.LittleEndian.Uint16(data[index:index+2]) / 10
+	dlt_ltr_c := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	dlt_ltr_s := binary.LittleEndian.Uint16(data[index:index+2]) / 10
+	dlt_ltr_s := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
 	fltr_wrn_int := (data[index]>>0)&1 == 1
 	fltr_wrn_ext := (data[index]>>1)&1 == 1
@@ -345,9 +345,9 @@ func pollPayloadDecoder(data []byte) TZipHydrotapPoll {
 		UsageWaterDeltaDispensesBoiling:   int(dlt_disp_b),
 		UsageWaterDeltaDispensesChilled:   int(dlt_disp_c),
 		UsageWaterDeltaDispensesSparkling: int(dlt_disp_s),
-		UsageWaterDeltaLitresBoiling:      int(dlt_ltr_b),
-		UsageWaterDeltaLitresChilled:      int(dlt_ltr_c),
-		UsageWaterDeltaLitresSparkling:    int(dlt_ltr_s),
+		UsageWaterDeltaLitresBoiling:      dlt_ltr_b,
+		UsageWaterDeltaLitresChilled:      dlt_ltr_c,
+		UsageWaterDeltaLitresSparkling:    dlt_ltr_s,
 		Fault1:                            f1,
 		Fault2:                            f2,
 		Fault3:                            f3,
