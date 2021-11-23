@@ -16,8 +16,10 @@ type TZipHydrotapBase struct {
 
 type TZipHydrotapStatic struct {
 	TZipHydrotapBase
-	LoRaVersionMajor        uint8  `json:"lora_version_major"`
-	LoRaVersionMinor        uint8  `json:"lora_version_minor"`
+	LoRaFirmwareMajor       uint8  `json:"lora_firmware_major"`
+	LoRaFirmwareMinor       uint8  `json:"lora_firmware_minor"`
+	LoRaBuildMajor          uint8  `json:"lora_build_major"`
+	LoRaBuildMinor          uint8  `json:"lora_build_minor"`
 	SerialNumber            string `json:"serial_number"`
 	ModelNumber             string `json:"model_number"`
 	ProductNumber           string `json:"product_number"`
@@ -63,6 +65,7 @@ type TZipHydrotapWrite struct {
 
 type TZipHydrotapPoll struct {
 	TZipHydrotapBase
+	Rebooted                          bool    `json:"rebooted"`
 	StaticCOVFlag                     bool    `json:"static_cov_flag"`
 	WriteCOVFlag                      bool    `json:"write_cov_flag"`
 	SleepModeStatus                   int8    `json:"sleep_mode_status"`
@@ -142,7 +145,7 @@ func ZHtCheckPayloadLength(data string) bool {
 	data_length, _ := strconv.ParseInt(data[12:14], 16, 0)
 	log.Printf("ZHT data_length: %d\n", data_length)
 
-	return (payload_type == StaticData && data_length == 96 && payload_length > 96) ||
+	return (payload_type == StaticData && data_length == 98 && payload_length > 98) ||
 		(payload_type == WriteData && data_length == 52 && payload_length > 52) ||
 		(payload_type == PollData && data_length == 41 && payload_length > 41)
 }
@@ -175,9 +178,13 @@ func bytesToDate(bytes []byte) string {
 
 func staticPayloadDecoder(data []byte) TZipHydrotapStatic {
 	index := 1
-	lvma := data[index]
+	fw_ma := data[index]
 	index += 1
-	lvmi := data[index]
+	fw_mi := data[index]
+	index += 1
+	build_ma := data[index]
+	index += 1
+	build_mi := data[index]
 	index += 1
 	sn := bytesToString(data[index : index+15])
 	index += 15
@@ -200,8 +207,10 @@ func staticPayloadDecoder(data []byte) TZipHydrotapStatic {
 	filt_log_litres_ext := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
 	return TZipHydrotapStatic{
-		LoRaVersionMajor:        lvma,
-		LoRaVersionMinor:        lvmi,
+		LoRaFirmwareMajor:       fw_ma,
+		LoRaFirmwareMinor:       fw_mi,
+		LoRaBuildMajor:          build_ma,
+		LoRaBuildMinor:          build_mi,
 		SerialNumber:            sn,
 		ModelNumber:             mn,
 		ProductNumber:           pn,
@@ -287,6 +296,7 @@ func writePayloadDecoder(data []byte) TZipHydrotapWrite {
 
 func pollPayloadDecoder(data []byte) TZipHydrotapPoll {
 	index := 1
+	rebooted := (data[index]>>5)&1 == 1
 	s_cov := (data[index]>>6)&1 == 1
 	w_cov := (data[index]>>7)&1 == 1
 	sms := int8((data[index]) & 0x3F)
@@ -334,6 +344,7 @@ func pollPayloadDecoder(data []byte) TZipHydrotapPoll {
 	index += 2
 
 	return TZipHydrotapPoll{
+		Rebooted:                          rebooted,
 		StaticCOVFlag:                     s_cov,
 		WriteCOVFlag:                      w_cov,
 		SleepModeStatus:                   sms,
