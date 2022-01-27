@@ -8,6 +8,15 @@ import (
 	"strconv"
 )
 
+const ZHTPlLenStaticV1 = 98
+const ZHTPlLenStaticV2 = 103 // 9500ms
+
+const ZHTPlLenWriteV1 = 52
+const ZHTPlLenWriteV2 = 67 // 7200ms
+
+const ZHTPlLenPollV1 = 41
+const ZHTPlLenPollV2 = 48 // 6200ms
+
 type TZipHydrotapBase struct {
 	CommonValues
 	PayloadType     string `json:"payload_type"`
@@ -30,6 +39,8 @@ type TZipHydrotapStatic struct {
 	FilterLogLitresInternal int    `json:"filter_log_litres_internal"`
 	FilterLogDateExternal   string `json:"filter_log_date_external"`
 	FilterLogLitresExternal int    `json:"filter_log_litres_external"`
+	FilterLogDateUV         string `json:"filter_log_date_uv"`
+	FilterLogLitresUV       int    `json:"filter_log_litres_uv"`
 }
 
 const ZipHTTimerLength = 7
@@ -61,6 +72,16 @@ type TZipHydrotapWrite struct {
 	SecurityEnable               bool                                `json:"security_enable"`
 	SecurityPin                  string                              `json:"security_pin"`
 	Timers                       [ZipHTTimerLength]TZipHydrotapTimer `json:"timers"`
+	// Packet V2
+	FilterInfoLifeLitresUV int `json:"filter_info_life_litres_uv"`
+	FilterInfoLifeMonthsUV int `json:"filter_info_life_months_uv"`
+	CO2LifeGrams           int `json:"co2_life_grams"`
+	CO2LifeMonths          int `json:"co2_life_months"`
+	CO2Pressure            int `json:"co2_pressure"`
+	CO2TankCapacity        int `json:"co2_tank_capacity"`
+	CO2AbsorptionRate      int `json:"co2_absorption_rate"`
+	SparklingFlowRate      int `json:"sparkling_flow_rate"`
+	SparklingFlushTime     int `json:"sparkling_flush_time"`
 }
 
 type TZipHydrotapPoll struct {
@@ -90,6 +111,13 @@ type TZipHydrotapPoll struct {
 	FilterInfoUsageDaysInternal       int     `json:"filter_info_usage_days_internal"`
 	FilterInfoUsageLitresExternal     int     `json:"filter_info_usage_litres_external"`
 	FilterInfoUsageDaysExternal       int     `json:"filter_info_usage_days_external"`
+	// Packet V2
+	FilterInfoUsageLitresUV int  `json:"filter_info_usage_litres_uv"`
+	FilterInfoUsageDaysUV   int  `json:"filter_info_usage_days_uv"`
+	FilterWarningUV         bool `json:"filter_warning_uv"`
+	CO2LowGasWarning        bool `json:"co2_low_gas_warning"`
+	CO2UsageGrams           int  `json:"co2_usage_grams"`
+	CO2UsageDays            int  `json:"co2_usage_days"`
 }
 
 type TZHTPayloadType int
@@ -108,46 +136,53 @@ func ZipHydrotap(data string, sensor TSensorType) (TZipHydrotapBase, interface{}
 	log.Printf("ZHT BYTES: %d", len(bytes))
 	switch pl := getPayloadType(data); pl {
 	case StaticData:
-		payload_full := staticPayloadDecoder(bytes)
-		common_data := Common(data, sensor)
-		payload_full.CommonValues = common_data
-		payload_full.PayloadType = "static"
-		payload_full.ProtocolVersion = getProtocolVersion(data)
-		return payload_full.TZipHydrotapBase, payload_full
+		payloadFull := staticPayloadDecoder(bytes)
+		commonData := Common(data, sensor)
+		payloadFull.CommonValues = commonData
+		payloadFull.PayloadType = "static"
+		payloadFull.ProtocolVersion = getPacketVersion(data)
+		return payloadFull.TZipHydrotapBase, payloadFull
 	case WriteData:
-		payload_full := writePayloadDecoder(bytes)
-		common_data := Common(data, sensor)
-		payload_full.CommonValues = common_data
-		payload_full.PayloadType = "write"
-		payload_full.ProtocolVersion = getProtocolVersion(data)
-		return payload_full.TZipHydrotapBase, payload_full
+		payloadFull := writePayloadDecoder(bytes)
+		commonData := Common(data, sensor)
+		payloadFull.CommonValues = commonData
+		payloadFull.PayloadType = "write"
+		payloadFull.ProtocolVersion = getPacketVersion(data)
+		return payloadFull.TZipHydrotapBase, payloadFull
 	case PollData:
-		payload_full := pollPayloadDecoder(bytes)
-		common_data := Common(data, sensor)
-		payload_full.CommonValues = common_data
-		payload_full.PayloadType = "poll"
-		payload_full.ProtocolVersion = getProtocolVersion(data)
-		return payload_full.TZipHydrotapBase, payload_full
+		payloadFull := pollPayloadDecoder(bytes)
+		commonData := Common(data, sensor)
+		payloadFull.CommonValues = commonData
+		payloadFull.PayloadType = "poll"
+		payloadFull.ProtocolVersion = getPacketVersion(data)
+		return payloadFull.TZipHydrotapBase, payloadFull
 	}
 
 	return TZipHydrotapBase{}, nil
 }
 
 func getPayloadType(data string) TZHTPayloadType {
-	pl_id, _ := strconv.ParseInt(data[14:16], 16, 0)
-	return TZHTPayloadType(pl_id)
+	plId, _ := strconv.ParseInt(data[14:16], 16, 0)
+	return TZHTPayloadType(plId)
 }
 
 func ZHtCheckPayloadLength(data string) bool {
-	payload_length := len(data) - 10 // removed addr, nonce and MAC
-	payload_length /= 2
-	payload_type := getPayloadType(data)
-	data_length, _ := strconv.ParseInt(data[12:14], 16, 0)
-	log.Printf("ZHT data_length: %d\n", data_length)
+	payloadLength := len(data) - 10 // removed addr, nonce and MAC
+	payloadLength /= 2
+	payloadType := getPayloadType(data)
+	dataLength, _ := strconv.ParseInt(data[12:14], 16, 0)
+	log.Printf("ZHT dataLength: %d\n", dataLength)
 
-	return (payload_type == StaticData && data_length == 98 && payload_length > 98) ||
-		(payload_type == WriteData && data_length == 52 && payload_length > 52) ||
-		(payload_type == PollData && data_length == 41 && payload_length > 41)
+	if getPacketVersion(data) == 1 {
+		return (payloadType == StaticData && dataLength == ZHTPlLenStaticV1 && payloadLength > ZHTPlLenStaticV1) ||
+			(payloadType == WriteData && dataLength == ZHTPlLenWriteV1 && payloadLength > ZHTPlLenWriteV1) ||
+			(payloadType == PollData && dataLength == ZHTPlLenPollV1 && payloadLength > ZHTPlLenPollV1)
+	} else if getPacketVersion(data) == 2 {
+		return (payloadType == StaticData && dataLength == ZHTPlLenStaticV2 && payloadLength > ZHTPlLenStaticV2) ||
+			(payloadType == WriteData && dataLength == ZHTPlLenWriteV2 && payloadLength > ZHTPlLenWriteV2) ||
+			(payloadType == PollData && dataLength == ZHTPlLenPollV2 && payloadLength > ZHTPlLenPollV2)
+	}
+	return false
 }
 
 func getPayloadBytes(data string) []byte {
@@ -156,7 +191,7 @@ func getPayloadBytes(data string) []byte {
 	return bytes
 }
 
-func getProtocolVersion(data string) uint8 {
+func getPacketVersion(data string) uint8 {
 	v, _ := strconv.ParseInt(data[16:18], 16, 0)
 	return uint8(v)
 }
@@ -178,13 +213,13 @@ func bytesToDate(bytes []byte) string {
 
 func staticPayloadDecoder(data []byte) TZipHydrotapStatic {
 	index := 1
-	fw_ma := data[index]
+	fwMa := data[index]
 	index += 1
-	fw_mi := data[index]
+	fwMi := data[index]
 	index += 1
-	build_ma := data[index]
+	buildMa := data[index]
 	index += 1
-	build_mi := data[index]
+	buildMi := data[index]
 	index += 1
 	sn := bytesToString(data[index : index+15])
 	index += 15
@@ -194,33 +229,45 @@ func staticPayloadDecoder(data []byte) TZipHydrotapStatic {
 	index += 20
 	fw := bytesToString(data[index : index+20])
 	index += 20
-	cal_date := bytesToDate(data[index : index+3])
+	calDate := bytesToDate(data[index : index+3])
 	index += 3
-	f50l_date := bytesToDate(data[index : index+3])
+	f50lDate := bytesToDate(data[index : index+3])
 	index += 3
-	filt_log_date_int := bytesToDate(data[index : index+3])
+	filtLogDateInt := bytesToDate(data[index : index+3])
 	index += 3
-	filt_log_litres_int := int(binary.LittleEndian.Uint16(data[index : index+2]))
+	filtLogLitresInt := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
-	filt_log_date_ext := bytesToDate(data[index : index+3])
+	filtLogDateExt := bytesToDate(data[index : index+3])
 	index += 3
-	filt_log_litres_ext := int(binary.LittleEndian.Uint16(data[index : index+2]))
+	filtLogLitresExt := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
+
+	filtLogDateUV := ""
+	filtLogLitresUV := 0
+	if data[0] >= 2 {
+		filtLogDateUV = bytesToDate(data[index : index+3])
+		index += 3
+		filtLogLitresUV = int(binary.LittleEndian.Uint16(data[index : index+2]))
+		index += 2
+	}
+
 	return TZipHydrotapStatic{
-		LoRaFirmwareMajor:       fw_ma,
-		LoRaFirmwareMinor:       fw_mi,
-		LoRaBuildMajor:          build_ma,
-		LoRaBuildMinor:          build_mi,
+		LoRaFirmwareMajor:       fwMa,
+		LoRaFirmwareMinor:       fwMi,
+		LoRaBuildMajor:          buildMa,
+		LoRaBuildMinor:          buildMi,
 		SerialNumber:            sn,
 		ModelNumber:             mn,
 		ProductNumber:           pn,
 		FirmwareVersion:         fw,
-		CalibrationDate:         cal_date,
-		First50LitresData:       f50l_date,
-		FilterLogDateInternal:   filt_log_date_int,
-		FilterLogLitresInternal: filt_log_litres_int,
-		FilterLogDateExternal:   filt_log_date_ext,
-		FilterLogLitresExternal: filt_log_litres_ext,
+		CalibrationDate:         calDate,
+		First50LitresData:       f50lDate,
+		FilterLogDateInternal:   filtLogDateInt,
+		FilterLogLitresInternal: filtLogLitresInt,
+		FilterLogDateExternal:   filtLogDateExt,
+		FilterLogLitresExternal: filtLogLitresExt,
+		FilterLogDateUV:         filtLogDateUV,
+		FilterLogLitresUV:       filtLogLitresUV,
 	}
 }
 
@@ -228,35 +275,35 @@ func writePayloadDecoder(data []byte) TZipHydrotapWrite {
 	index := 1
 	time := fmt.Sprintf("%d", binary.LittleEndian.Uint32(data[index:index+4]))
 	index += 4
-	disp_b := int(data[index])
+	dispB := int(data[index])
 	index += 1
-	disp_c := int(data[index])
+	dispC := int(data[index])
 	index += 1
-	disp_s := int(data[index])
+	dispS := int(data[index])
 	index += 1
-	temp_sp_b := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
+	tempSpB := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	temp_sp_c := float32(int(data[index]))
+	tempSpC := float32(int(data[index]))
 	index += 1
-	temp_sp_s := float32(int(data[index]))
+	tempSpS := float32(int(data[index]))
 	index += 1
 	sm := int(data[index])
 	index += 1
-	fil_lyf_ltr_int := binary.LittleEndian.Uint16(data[index : index+2])
+	filLyfLtrInt := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
-	fil_lyf_mnth_int := int(data[index])
+	filLyfMnthInt := int(data[index])
 	index += 1
-	fil_lyf_ltr_ext := binary.LittleEndian.Uint16(data[index : index+2])
+	filLyfLtrExt := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
-	fil_lyf_mnth_ext := int(data[index])
+	filLyfMnthExt := int(data[index])
 	index += 1
-	sf_tap := (data[index]>>2)&1 == 1
-	sf_l := (data[index]>>1)&1 == 1
-	sf_hi := (data[index]>>0)&1 == 1
+	sfTap := (data[index]>>2)&1 == 1
+	sfL := (data[index]>>1)&1 == 1
+	sfHi := (data[index]>>0)&1 == 1
 	index += 1
 	secUI16 := binary.LittleEndian.Uint16(data[index : index+2])
-	sec_en := secUI16 >= 10000
-	sec_pin := fmt.Sprintf("%.4d", (secUI16 % 10000))
+	secEn := secUI16 >= 10000
+	secPin := fmt.Sprintf("%.4d", (secUI16 % 10000))
 	index += 2
 
 	var timers [ZipHTTimerLength]TZipHydrotapTimer
@@ -272,42 +319,82 @@ func writePayloadDecoder(data []byte) TZipHydrotapWrite {
 		index += 2
 	}
 
+	filLyfLtrUV := 0
+	filLyfMnthUV := 0
+	cO2LyfGrams := 0
+	cO2LyfMnths := 0
+	cO2Pressure := 0
+	cO2TankCap := 0
+	cO2AbsorpRate := 0
+	sparklFlowRate := 0
+	sparklFlushTime := 0
+	if data[0] >= 2 {
+		filLyfLtrUV = int(binary.LittleEndian.Uint16(data[index : index+2]))
+		index += 2
+		filLyfMnthUV = int(data[index])
+		index += 1
+		cO2LyfGrams = int(binary.LittleEndian.Uint16(data[index : index+2]))
+		index += 2
+		cO2LyfMnths = int(data[index])
+		index += 1
+		cO2Pressure = int(binary.LittleEndian.Uint16(data[index : index+2]))
+		index += 2
+		cO2TankCap = int(binary.LittleEndian.Uint16(data[index : index+2]))
+		index += 2
+		cO2AbsorpRate = int(binary.LittleEndian.Uint16(data[index : index+2]))
+		index += 2
+		sparklFlowRate = int(binary.LittleEndian.Uint16(data[index : index+2]))
+		index += 2
+		sparklFlushTime = int(binary.LittleEndian.Uint16(data[index : index+2]))
+		index += 2
+	}
+
 	return TZipHydrotapWrite{
 		Time:                         time,
-		DispenseTimeBoiling:          disp_b,
-		DispenseTimeChilled:          disp_c,
-		DispenseTimeSparkling:        disp_s,
-		TemperatureSPBoiling:         temp_sp_b,
-		TemperatureSPChilled:         temp_sp_c,
-		TemperatureSPSparkling:       temp_sp_s,
+		DispenseTimeBoiling:          dispB,
+		DispenseTimeChilled:          dispC,
+		DispenseTimeSparkling:        dispS,
+		TemperatureSPBoiling:         tempSpB,
+		TemperatureSPChilled:         tempSpC,
+		TemperatureSPSparkling:       tempSpS,
 		SleepModeSetting:             sm,
-		FilterInfoLifeLitresInternal: int(fil_lyf_ltr_int),
-		FilterInfoLifeMonthsInternal: fil_lyf_mnth_int,
-		FilterInfoLifeLitresExternal: int(fil_lyf_ltr_ext),
-		FilterInfoLifeMonthsExternal: fil_lyf_mnth_ext,
-		SafetyAllowTapChanges:        sf_tap,
-		SafetyLock:                   sf_l,
-		SafetyHotIsolation:           sf_hi,
-		SecurityEnable:               sec_en,
-		SecurityPin:                  sec_pin,
+		FilterInfoLifeLitresInternal: filLyfLtrInt,
+		FilterInfoLifeMonthsInternal: filLyfMnthInt,
+		FilterInfoLifeLitresExternal: filLyfLtrExt,
+		FilterInfoLifeMonthsExternal: filLyfMnthExt,
+		SafetyAllowTapChanges:        sfTap,
+		SafetyLock:                   sfL,
+		SafetyHotIsolation:           sfHi,
+		SecurityEnable:               secEn,
+		SecurityPin:                  secPin,
 		Timers:                       timers,
+		// Pkt V2
+		FilterInfoLifeLitresUV: filLyfLtrUV,
+		FilterInfoLifeMonthsUV: filLyfMnthUV,
+		CO2LifeGrams:           cO2LyfGrams,
+		CO2LifeMonths:          cO2LyfMnths,
+		CO2Pressure:            cO2Pressure,
+		CO2TankCapacity:        cO2TankCap,
+		CO2AbsorptionRate:      cO2AbsorpRate,
+		SparklingFlowRate:      sparklFlowRate,
+		SparklingFlushTime:     sparklFlushTime,
 	}
 }
 
 func pollPayloadDecoder(data []byte) TZipHydrotapPoll {
 	index := 1
 	rebooted := (data[index]>>5)&1 == 1
-	s_cov := (data[index]>>6)&1 == 1
-	w_cov := (data[index]>>7)&1 == 1
+	sCov := (data[index]>>6)&1 == 1
+	wCov := (data[index]>>7)&1 == 1
 	sms := int8((data[index]) & 0x3F)
 	index += 1
-	temp_b := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
+	tempB := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	temp_c := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
+	tempC := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	temp_s := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
+	tempS := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	temp_cond := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
+	tempCond := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
 	f1 := data[index]
 	index += 1
@@ -319,55 +406,83 @@ func pollPayloadDecoder(data []byte) TZipHydrotapPoll {
 	index += 1
 	kwh := float32(binary.LittleEndian.Uint32(data[index:index+4])) * 0.1
 	index += 4
-	dlt_disp_b := binary.LittleEndian.Uint16(data[index : index+2])
+	dltDispB := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
-	dlt_disp_c := binary.LittleEndian.Uint16(data[index : index+2])
+	dltDispC := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
-	dlt_disp_s := binary.LittleEndian.Uint16(data[index : index+2])
+	dltDispS := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
-	dlt_ltr_b := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
+	dltLtrB := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	dlt_ltr_c := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
+	dltLtrC := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	dlt_ltr_s := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
+	dltLtrS := float32(binary.LittleEndian.Uint16(data[index:index+2])) / 10
 	index += 2
-	fltr_wrn_int := (data[index]>>0)&1 == 1
-	fltr_wrn_ext := (data[index]>>1)&1 == 1
+	warningIndex := index
+	fltrWrnInt := (data[index]>>0)&1 == 1
+	fltrWrnExt := (data[index]>>1)&1 == 1
 	index += 1
-	fltr_nfo_use_ltr_int := binary.LittleEndian.Uint16(data[index : index+2])
+	fltrNfoUseLtrInt := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
-	fltr_nfo_use_day_int := binary.LittleEndian.Uint16(data[index : index+2])
+	fltrNfoUseDayInt := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
-	fltr_nfo_use_ltr_ext := binary.LittleEndian.Uint16(data[index : index+2])
+	fltrNfoUseLtrExt := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
-	fltr_nfo_use_day_ext := binary.LittleEndian.Uint16(data[index : index+2])
+	fltrNfoUseDayExt := int(binary.LittleEndian.Uint16(data[index : index+2]))
 	index += 2
+
+	fltrNfoUseLtrUV := 0
+	fltrNfoUseDayUV := 0
+	fltrWrnUV := false
+	cO2GasPressureWrn := false
+	cO2UsgGrams := 0
+	cO2UsgDays := 0
+	if data[0] >= 2 {
+		fltrNfoUseLtrUV = int(binary.LittleEndian.Uint16(data[index : index+2]))
+		index += 2
+		fltrNfoUseDayUV = int(binary.LittleEndian.Uint16(data[index : index+2]))
+		index += 2
+
+		fltrWrnUV = (data[warningIndex]>>2)&1 == 1
+		cO2GasPressureWrn = (data[warningIndex]>>3)&1 == 1
+		cO2UsgGrams = int(binary.LittleEndian.Uint16(data[index : index+2]))
+		index += 2
+		cO2UsgDays = int(data[index])
+		index += 1
+	}
 
 	return TZipHydrotapPoll{
 		Rebooted:                          rebooted,
-		StaticCOVFlag:                     s_cov,
-		WriteCOVFlag:                      w_cov,
+		StaticCOVFlag:                     sCov,
+		WriteCOVFlag:                      wCov,
 		SleepModeStatus:                   sms,
-		TemperatureNTCBoiling:             temp_b,
-		TemperatureNTCChilled:             temp_c,
-		TemperatureNTCStream:              temp_s,
-		TemperatureNTCCondensor:           temp_cond,
+		TemperatureNTCBoiling:             tempB,
+		TemperatureNTCChilled:             tempC,
+		TemperatureNTCStream:              tempS,
+		TemperatureNTCCondensor:           tempCond,
 		UsageEnergyKWh:                    kwh,
-		UsageWaterDeltaDispensesBoiling:   int(dlt_disp_b),
-		UsageWaterDeltaDispensesChilled:   int(dlt_disp_c),
-		UsageWaterDeltaDispensesSparkling: int(dlt_disp_s),
-		UsageWaterDeltaLitresBoiling:      dlt_ltr_b,
-		UsageWaterDeltaLitresChilled:      dlt_ltr_c,
-		UsageWaterDeltaLitresSparkling:    dlt_ltr_s,
+		UsageWaterDeltaDispensesBoiling:   dltDispB,
+		UsageWaterDeltaDispensesChilled:   dltDispC,
+		UsageWaterDeltaDispensesSparkling: dltDispS,
+		UsageWaterDeltaLitresBoiling:      dltLtrB,
+		UsageWaterDeltaLitresChilled:      dltLtrC,
+		UsageWaterDeltaLitresSparkling:    dltLtrS,
 		Fault1:                            f1,
 		Fault2:                            f2,
 		Fault3:                            f3,
 		Fault4:                            f4,
-		FilterWarningInternal:             fltr_wrn_int,
-		FilterWarningExternal:             fltr_wrn_ext,
-		FilterInfoUsageLitresInternal:     int(fltr_nfo_use_ltr_int),
-		FilterInfoUsageDaysInternal:       int(fltr_nfo_use_day_int),
-		FilterInfoUsageLitresExternal:     int(fltr_nfo_use_ltr_ext),
-		FilterInfoUsageDaysExternal:       int(fltr_nfo_use_day_ext),
+		FilterWarningInternal:             fltrWrnInt,
+		FilterWarningExternal:             fltrWrnExt,
+		FilterInfoUsageLitresInternal:     fltrNfoUseLtrInt,
+		FilterInfoUsageDaysInternal:       fltrNfoUseDayInt,
+		FilterInfoUsageLitresExternal:     fltrNfoUseLtrExt,
+		FilterInfoUsageDaysExternal:       fltrNfoUseDayExt,
+		// Pkt V2
+		FilterInfoUsageLitresUV: fltrNfoUseLtrUV,
+		FilterInfoUsageDaysUV:   fltrNfoUseDayUV,
+		FilterWarningUV:         fltrWrnUV,
+		CO2LowGasWarning:        cO2GasPressureWrn,
+		CO2UsageGrams:           cO2UsgGrams,
+		CO2UsageDays:            cO2UsgDays,
 	}
 }
