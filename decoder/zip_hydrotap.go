@@ -337,8 +337,8 @@ func writePayloadDecoder(data []byte) TZipHydrotapWrite {
 		index += 2
 		cO2LyfMnths = int(data[index])
 		index += 1
-		cO2Pressure = int(binary.LittleEndian.Uint16(data[index : index+2]))
-		index += 2
+		cO2Pressure = int(data[index])
+		index += 1
 		cO2TankCap = int(binary.LittleEndian.Uint16(data[index : index+2]))
 		index += 2
 		cO2AbsorpRate = int(binary.LittleEndian.Uint16(data[index : index+2]))
