@@ -9,13 +9,13 @@ import (
 )
 
 const ZHTPlLenStaticV1 = 98
-const ZHTPlLenStaticV2 = 103 // 9500ms
+const ZHTPlLenStaticV2 = 102 // 9500ms
 
 const ZHTPlLenWriteV1 = 52
-const ZHTPlLenWriteV2 = 67 // 7200ms
+const ZHTPlLenWriteV2 = 66 // 7200ms
 
 const ZHTPlLenPollV1 = 41
-const ZHTPlLenPollV2 = 48 // 6200ms
+const ZHTPlLenPollV2 = 47 // 6200ms
 
 type TZipHydrotapBase struct {
 	CommonValues

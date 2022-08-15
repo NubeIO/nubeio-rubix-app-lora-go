@@ -28,7 +28,7 @@ const (
 	DropletB0     TSensorCode = "B0"
 	DropletB1     TSensorCode = "B1"
 	DropletB2     TSensorCode = "B2"
-	ZipHydrotapD1 TSensorCode = "D1"
+	ZipHydrotapD1 TSensorCode = "C0"
 )
 
 func GetSensorType(data string) TSensorType {
